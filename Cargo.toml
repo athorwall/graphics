@@ -1,0 +1,13 @@
+[package]
+name = "graphics"
+version = "0.1.0"
+authors = ["Andrew Thorwall <anthor@umich.edu>"]
+
+[dependencies]
+cgmath = "0.16.1"
+num-traits = "0.2.4"
+
+[dependencies.sdl2]
+version = "0.31.0"
+features = ["bundled", "static-link", "unsafe_textures"]
+
