@@ -15,9 +15,6 @@ use geometry::*;
 use std::borrow::*;
 
 pub struct Renderer {
-    ctx: Sdl,
-    video_ctx: VideoSubsystem,
-    canvas: Canvas<Window>,
     z_buffer: Frame<f32>,
     color_buffer: Frame<Color>,
     screen_width: u32,
@@ -26,25 +23,6 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn create(screen_width: u32, screen_height: u32) -> Self {
-        let ctx = sdl2::init().unwrap();
-        let video_ctx = ctx.video().unwrap();
-
-        let window = match video_ctx.window(
-            "window",
-            screen_width,
-            screen_height)
-            .position_centered()
-            .opengl()
-            .build() {
-            Ok(window) => window,
-            Err(err)   => panic!("failed to create window: {}", err)
-        };
-
-        let mut canvas = match window.into_canvas().build() {
-            Ok(canvas) => canvas,
-            Err(err)   => panic!("failed to create renderer: {}", err)
-        };
-
         let z_buffer = Frame::new(
             screen_width as usize,
             screen_height as usize,
@@ -58,9 +36,6 @@ impl Renderer {
         );
 
         return Renderer {
-            ctx,
-            video_ctx,
-            canvas,
             z_buffer,
             color_buffer,
             screen_width,
@@ -112,40 +87,17 @@ impl Renderer {
         }
     }
 
-    pub fn triangles(
-        vertices: &Vec<Vector3<f32>>,
-        triangles: &Vec<(usize, usize, usize)>,
+    pub fn mesh(
+        &mut self,
+        mesh: &Mesh,
     ) {
-        /*
-        for triangle in triangles {
-            draw_triangle(
-                [vertices[triangle.0], vertices[triangle.1], vertices[triangle.2]],
-
-            )
+        for (v0, v1, v2) in &mesh.triangles {
+            self.triangle(
+                mesh.vertices[*v0],
+                mesh.vertices[*v1],
+                mesh.vertices[*v2],
+            );
         }
-        */
-    }
-
-    pub fn present(&mut self) {
-        let mut texture = self.canvas.create_texture_streaming(
-            sdl2::pixels::PixelFormatEnum::ARGB8888,
-            self.color_buffer.width() as u32,
-            self.color_buffer.height() as u32).unwrap();
-        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..self.color_buffer.height() {
-                for x in 0..self.color_buffer.width() {
-                    let pixel = self.color_buffer.at(x, y).unwrap();
-                    let offset = y * pitch + x * 4;
-                    buffer[offset] = pixel.b;
-                    buffer[offset + 1] = pixel.g;
-                    buffer[offset + 2] = pixel.r;
-                    buffer[offset + 3] = pixel.a;
-                }
-            }
-        }).unwrap();
-        self.canvas.clear();
-        let _ = self.canvas.copy(&texture, None, None);
-        self.canvas.present();
     }
 
     pub fn clear(&mut self) {
@@ -161,9 +113,8 @@ impl Renderer {
         );
     }
 
-    // I don't think this is good.
-    pub fn get_events(&mut self) -> EventPump {
-        return self.ctx.event_pump().unwrap();
+    pub fn get_color_buffer(&self) -> &Frame<Color> {
+        return &self.color_buffer;
     }
 }
 
