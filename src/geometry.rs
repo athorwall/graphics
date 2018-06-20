@@ -9,6 +9,15 @@ pub struct Vertex {
     pub color: Color,
 }
 
+impl Vertex {
+    pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
+        return Vertex{
+            position: (transformation * self.position.extend(1.0)).truncate(),
+            color: self.color,
+        };
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
@@ -100,7 +109,25 @@ impl Mesh {
 
     pub fn transform(&mut self, transformation: Matrix4<f32>) {
         for vertex in &mut self.vertices {
-            vertex.position = (transformation * vertex.position.extend(1.0)).truncate();
+            let homogenous_coordinates = transformation * vertex.position.extend(1.0);
+            vertex.position = Vector3{
+                x: homogenous_coordinates.x / homogenous_coordinates.w,
+                y: homogenous_coordinates.y / homogenous_coordinates.w,
+                z: homogenous_coordinates.z / homogenous_coordinates.w,
+            };
         }
+    }
+
+    pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
+        let mut mesh = self.clone();
+        for vertex in &mut mesh.vertices {
+            let homogenous_coordinates = transformation * vertex.position.extend(1.0);
+            vertex.position = Vector3{
+                x: homogenous_coordinates.x / homogenous_coordinates.w,
+                y: homogenous_coordinates.y / homogenous_coordinates.w,
+                z: homogenous_coordinates.z / homogenous_coordinates.w,
+            };
+        }
+        return mesh;
     }
 }

@@ -51,16 +51,16 @@ impl Renderer {
     ) {
         let projected_triangle = Triangle{
             p0: Point2{
-                x: v0.position.x * self.color_buffer.width() as f32,
-                y: (1.0 - v0.position.y) * self.color_buffer.height() as f32,
+                x: ((v0.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - v0.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
             p1: Point2{
-                x: v1.position.x * self.color_buffer.width() as f32,
-                y: (1.0 - v1.position.y) * self.color_buffer.height() as f32,
+                x: ((v1.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - v1.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
             p2: Point2{
-                x: v2.position.x * self.color_buffer.width() as f32,
-                y: (1.0 - v2.position.y) * self.color_buffer.height() as f32,
+                x: ((v2.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - v2.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
         };
         let bounds =
