@@ -42,11 +42,23 @@ pub fn render_to_canvas(
         color_buffer.width() as u32,
         color_buffer.height() as u32).unwrap();
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        /*
         unsafe {
             ptr::copy_nonoverlapping(
                 color_buffer.cells().as_ptr() as *const u8,
                 buffer.as_mut_ptr(),
                 color_buffer.cells().len() * 4);
+        }
+        */
+        for y in 0..color_buffer.height() {
+            for x in 0..color_buffer.width() {
+                let pixel = color_buffer.at(x, y).unwrap();
+                let offset = y * pitch + x * 4;
+                buffer[offset] = (pixel & 255) as u8;//pixel.b;
+                buffer[offset + 1] = ((pixel >> 8) & 255) as u8;// pixel.g;
+                buffer[offset + 2] = ((pixel >> 16) & 255) as u8; //pixel.r;
+                buffer[offset + 3] = ((pixel >> 24) & 255) as u8;
+            }
         }
     }).unwrap();
     canvas.clear();
