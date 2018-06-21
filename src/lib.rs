@@ -1,6 +1,7 @@
 extern crate cgmath;
 extern crate sdl2;
 extern crate num_traits;
+extern crate timing;
 
 pub mod camera;
 pub mod frame;

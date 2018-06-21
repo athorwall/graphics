@@ -4,6 +4,8 @@ use sdl2::*;
 use sdl2::{
     event::Event,
     pixels::Color,
+    pixels::PixelFormatEnum,
+    pixels::PixelFormat,
     rect::Point,
     render::Canvas,
     video::Window,
@@ -12,11 +14,12 @@ use cgmath::*;
 use math::*;
 use num_traits::Float;
 use geometry::*;
+use sdl_utils::*;
 use std::borrow::*;
 
 pub struct Renderer {
     z_buffer: Frame<f32>,
-    color_buffer: Frame<Color>,
+    color_buffer: Frame<u32>,
     screen_width: u32,
     screen_height: u32,
 }
@@ -32,7 +35,7 @@ impl Renderer {
         let color_buffer = Frame::new(
             screen_width as usize,
             screen_height as usize,
-            Color::RGB(0, 0, 0),
+            RGB(0, 0, 0),
         );
 
         return Renderer {
@@ -79,7 +82,8 @@ impl Renderer {
                             &vec![v0.color, v1.color, v2.color],
                             &vec![bary.0, bary.1, bary.2]
                         );
-                        self.color_buffer.set(x as usize, y as usize, color);
+                        let (r, g, b) = color.rgb();
+                        self.color_buffer.set(x as usize, y as usize, RGB(r, g, b));
                         self.z_buffer.set(x as usize, y as usize, z);
                     }
                 }
@@ -101,19 +105,11 @@ impl Renderer {
     }
 
     pub fn clear(&mut self) {
-        self.color_buffer = Frame::new(
-            self.screen_width as usize,
-            self.screen_height as usize,
-            Color::RGB(0, 0, 0),
-        );
-        self.z_buffer = Frame::new(
-            self.screen_width as usize,
-            self.screen_height as usize,
-            Float::max_value(),
-        );
+        self.color_buffer.set_all(RGB(0, 0, 0));
+        self.z_buffer.set_all(Float::max_value());
     }
 
-    pub fn get_color_buffer(&self) -> &Frame<Color> {
+    pub fn get_color_buffer(&self) -> &Frame<u32> {
         return &self.color_buffer;
     }
 }

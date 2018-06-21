@@ -1,30 +1,36 @@
-
 pub struct Frame<T> {
-    cells: Vec<Vec<T>>,
+    width: usize,
+    height: usize,
+    cells: Vec<T>,
 }
 
 impl <T: Copy> Frame<T> {
     pub fn new(width: usize, height: usize, value: T) -> Frame<T> {
-        let row = vec![value; width];
-        return Frame{cells: vec![row; height]};
+        let cells = vec![value; width * height];
+        return Frame{cells, width, height};
     }
 
     pub fn width(&self) -> usize {
-        return self.cells.get(0).map(|row| row.len()).unwrap_or(0);
+        return self.width;
     }
 
     pub fn height(&self) -> usize {
-        return self.cells.len();
+        return self.height;
     }
 
     pub fn at(&self, x: usize, y: usize) -> Option<T> {
-        return self.cells.get(y).and_then(|v| v.get(x)).map(|v| *v);
+        return self.cells.get(self.width * y + x).map(|a| *a);
     }
 
     pub fn set(&mut self, x: usize, y: usize, value: T) {
-        match self.cells.get_mut(y) {
-            Some(row) => row[x] = value,
-            None => {},
-        }
+        self.cells[self.width * y + x] = value;
+    }
+
+    pub fn set_all(&mut self, value: T) {
+        self.cells.iter_mut().for_each(|x| *x = value);
+    }
+
+    pub fn cells(&self) -> &Vec<T> {
+        return &self.cells;
     }
 }

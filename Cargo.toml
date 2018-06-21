@@ -11,3 +11,5 @@ num-traits = "0.2.4"
 version = "0.31.0"
 features = ["bundled", "static-link", "unsafe_textures"]
 
+[dependencies.timing]
+path = "../timing"
