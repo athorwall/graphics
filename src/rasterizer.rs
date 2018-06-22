@@ -4,8 +4,6 @@ use sdl2::*;
 use sdl2::{
     event::Event,
     pixels::Color,
-    pixels::PixelFormatEnum,
-    pixels::PixelFormat,
     rect::Point,
     render::Canvas,
     video::Window,
@@ -14,17 +12,17 @@ use cgmath::*;
 use math::*;
 use num_traits::Float;
 use geometry::*;
-use sdl_utils::*;
 use std::borrow::*;
+use textures::*;
 
-pub struct Renderer {
+pub struct Rasterizer {
     z_buffer: Frame<f32>,
-    color_buffer: Frame<u32>,
+    color_buffer: Frame<Color>,
     screen_width: u32,
     screen_height: u32,
 }
 
-impl Renderer {
+impl Rasterizer {
     pub fn create(screen_width: u32, screen_height: u32) -> Self {
         let z_buffer = Frame::new(
             screen_width as usize,
@@ -35,10 +33,10 @@ impl Renderer {
         let color_buffer = Frame::new(
             screen_width as usize,
             screen_height as usize,
-            RGB(0, 0, 0),
+            Color::RGB(0, 0, 0),
         );
 
-        return Renderer {
+        return Rasterizer {
             z_buffer,
             color_buffer,
             screen_width,
@@ -48,9 +46,10 @@ impl Renderer {
 
     pub fn triangle(
         &mut self,
-        v0: Vertex,
-        v1: Vertex,
-        v2: Vertex,
+        v0: Vertex4,
+        v1: Vertex4,
+        v2: Vertex4,
+        texture: Option<&Texture>,
     ) {
         let projected_triangle = Triangle{
             p0: Point2{
@@ -73,17 +72,31 @@ impl Renderer {
                 let point = Point2{x: x as f32, y: y as f32};
                 if projected_triangle.point_is_inside(point) {
                     let bary = projected_triangle.barycentric_coordinates(point);
-                    let inv_z = (1.0 / v0.position.z) * bary.0
-                        + (1.0 / v1.position.z) * bary.1
-                        + (1.0 / v2.position.z) * bary.2;
+                    let inv_z = (1.0 / v0.position.w) * bary.0
+                        + (1.0 / v1.position.w) * bary.1
+                        + (1.0 / v2.position.w) * bary.2;
                     let z = 1.0 / inv_z;
                     if z < self.z_buffer.at(x as usize, y as usize).unwrap() {
-                        let color = mix_colors(
+                        let weights = &vec![
+                            z * bary.0 / v0.position.w,
+                            z * bary.1 / v1.position.w,
+                            z * bary.2 / v2.position.w,
+                        ];
+                        let mut color = mix_colors(
                             &vec![v0.color, v1.color, v2.color],
-                            &vec![bary.0, bary.1, bary.2]
+                            &weights,
                         );
-                        let (r, g, b) = color.rgb();
-                        self.color_buffer.set(x as usize, y as usize, RGB(r, g, b));
+                        match texture {
+                            Some(ref t) => {
+                                let uvs = mix_uvs(
+                                    &vec![v0.uv, v1.uv, v2.uv],
+                                    weights,
+                                );
+                                color = t.sample(uvs.x, uvs.y);
+                            },
+                            None => {},
+                        };
+                        self.color_buffer.set(x as usize, y as usize, color);
                         self.z_buffer.set(x as usize, y as usize, z);
                     }
                 }
@@ -91,25 +104,12 @@ impl Renderer {
         }
     }
 
-    pub fn mesh(
-        &mut self,
-        mesh: &Mesh,
-    ) {
-        for (v0, v1, v2) in &mesh.triangles {
-            self.triangle(
-                mesh.vertices[*v0],
-                mesh.vertices[*v1],
-                mesh.vertices[*v2],
-            );
-        }
-    }
-
     pub fn clear(&mut self) {
-        self.color_buffer.set_all(RGB(0, 0, 0));
+        self.color_buffer.set_all(Color::RGB(0, 0, 0));
         self.z_buffer.set_all(Float::max_value());
     }
 
-    pub fn get_color_buffer(&self) -> &Frame<u32> {
+    pub fn get_color_buffer(&self) -> &Frame<Color> {
         return &self.color_buffer;
     }
 }

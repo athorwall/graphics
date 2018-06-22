@@ -2,6 +2,7 @@ use num_traits::Float;
 use num_traits::Num;
 use num_traits::AsPrimitive;
 use cgmath::{
+    Vector2,
     Vector3,
     Point2,
     BaseNum,
@@ -140,6 +141,15 @@ pub fn mix_colors(colors: &Vec<Color>, weights: &Vec<f32>) -> Color {
         b += (weight * (color.b as f32)) as u8;
     }
     return Color{a: 255, r, g, b};
+}
+
+pub fn mix_uvs(uvs: &Vec<Vector2<f32>>, weights: &Vec<f32>) -> Vector2<f32> {
+    let mut v = Vector2{x: 0.0, y: 0.0};
+    for (i, uv) in uvs.iter().enumerate() {
+        let weight = weights.get(i).unwrap_or(&0.0);
+        v += *weight * *uv;
+    }
+    return v;
 }
 
 /*

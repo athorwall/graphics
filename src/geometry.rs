@@ -4,23 +4,58 @@ use sdl2::{
 };
 
 #[derive(Clone, Copy, Debug)]
-pub struct Vertex {
+pub struct Vertex3 {
     pub position: Vector3<f32>,
     pub color: Color,
+    pub uv: Vector2<f32>,
 }
 
-impl Vertex {
+impl Vertex3 {
     pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
-        return Vertex{
+        return Vertex3 {
             position: (transformation * self.position.extend(1.0)).truncate(),
             color: self.color,
+            uv: self.uv,
         };
+    }
+
+    pub fn to_vertex4(&self, w: f32) -> Vertex4 {
+        return Vertex4{
+            position: self.position.extend(w),
+            color: self.color,
+            uv: self.uv,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Vertex4 {
+    pub position: Vector4<f32>,
+    pub color: Color,
+    pub uv: Vector2<f32>,
+}
+
+impl Vertex4 {
+    pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
+        return Vertex4 {
+            position: transformation * self.position,
+            color: self.color,
+            uv: self.uv,
+        };
+    }
+
+    pub fn perspective_adjusted(&self) -> Self {
+        let mut adjusted_vertex = self.clone();
+        adjusted_vertex.position.x /= adjusted_vertex.position.w;
+        adjusted_vertex.position.y /= adjusted_vertex.position.w;
+        adjusted_vertex.position.z /= adjusted_vertex.position.w;
+        return adjusted_vertex;
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    pub vertices: Vec<Vertex>,
+    pub vertices: Vec<Vertex3>,
     pub triangles: Vec<(usize, usize, usize)>,
 }
 
@@ -28,21 +63,25 @@ impl Mesh {
     pub fn xy_face(size: f32) -> Self {
         return Mesh{
             vertices: vec![
-                Vertex{
+                Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 0.0},
                 },
-                Vertex{
+                Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 0.0},
                 },
-                Vertex{
+                Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 1.0},
                 },
-                Vertex{
+                Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 1.0},
                 },
             ],
             triangles: vec![
@@ -53,30 +92,64 @@ impl Mesh {
     }
 
     pub fn cube(size: f32) -> Self {
-        let mut face1 = Self::xy_face(size);
-        face1.transform(Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: size / 2.0}));
-        let mut face2 = Self::xy_face(size);
-        face2.transform(Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: -size / 2.0}));
-        let mut face3 = Self::xy_face(size);
-        face3.transform(Matrix4::from_angle_y(Deg(90.0)));
-        face3.transform(Matrix4::from_translation(Vector3{x: size / 2.0, y: 0.0, z: 0.0}));
-        let mut face4 = Self::xy_face(size);
-        face4.transform(Matrix4::from_angle_y(Deg(90.0)));
-        face4.transform(Matrix4::from_translation(Vector3{x: -size / 2.0, y: 0.0, z: 0.0}));
-        let mut face5 = Self::xy_face(size);
-        face5.transform(Matrix4::from_angle_x(Deg(90.0)));
-        face5.transform(Matrix4::from_translation(Vector3{x: 0.0, y: size / 2.0, z: 0.0}));
-        let mut face6 = Self::xy_face(size);
-        face6.transform(Matrix4::from_angle_x(Deg(90.0)));
-        face6.transform(Matrix4::from_translation(Vector3{x: 0.0, y: -size / 2.0, z: 0.0}));
-        return Self::combine_many(&vec![
-            &face1,
-            &face2,
-            &face3,
-            &face4,
-            &face5,
-            &face6,
-        ]);
+        return Mesh{
+            vertices: vec![
+                Vertex3 {
+                    position: Vector3{x: -size / 2.0, y: -size / 2.0, z: size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 0.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: size / 2.0, y: -size / 2.0, z: size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 0.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: -size / 2.0, y: size / 2.0, z: size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 1.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: size / 2.0, y: size / 2.0, z: size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 1.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: -size / 2.0, y: -size / 2.0, z: -size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 0.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: size / 2.0, y: -size / 2.0, z: -size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 0.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: -size / 2.0, y: size / 2.0, z: -size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 1.0, y: 1.0},
+                },
+                Vertex3 {
+                    position: Vector3{x: size / 2.0, y: size / 2.0, z: -size / 2.0},
+                    color: Color::RGB(255, 255, 255),
+                    uv: Vector2{x: 0.0, y: 1.0},
+                },
+            ],
+            triangles: vec![
+                (0, 1, 2),
+                (1, 2, 3),
+                (1, 5, 3),
+                (5, 3, 7),
+                (4, 0, 2),
+                (4, 2, 6),
+                (4, 5, 6),
+                (5, 6, 7),
+                (0, 1, 4),
+                (1, 4, 5),
+                (2, 3, 6),
+                (3, 6, 7),
+            ],
+        };
     }
 
     pub fn combine(mesh1: &Mesh, mesh2: &Mesh) -> Self {

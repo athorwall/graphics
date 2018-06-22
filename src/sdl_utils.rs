@@ -8,7 +8,6 @@ use sdl2::{
     render::Canvas,
     video::Window,
 };
-use std::ptr;
 use timing::*;
 
 pub fn create_sdl_canvas(ctx: &Sdl, screen_width: u32, screen_height: u32) -> Canvas<Window> {
@@ -35,35 +34,30 @@ pub fn create_sdl_canvas(ctx: &Sdl, screen_width: u32, screen_height: u32) -> Ca
 
 pub fn render_to_canvas(
     canvas: &mut Canvas<Window>,
-    color_buffer: &Frame<u32>,
+    color_buffer: &Frame<Color>,
 ) {
     let mut texture = canvas.create_texture_streaming(
         sdl2::pixels::PixelFormatEnum::ARGB8888,
         color_buffer.width() as u32,
         color_buffer.height() as u32).unwrap();
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        /*
-        unsafe {
-            ptr::copy_nonoverlapping(
-                color_buffer.cells().as_ptr() as *const u8,
-                buffer.as_mut_ptr(),
-                color_buffer.cells().len() * 4);
-        }
-        */
         for y in 0..color_buffer.height() {
             for x in 0..color_buffer.width() {
                 let pixel = color_buffer.at(x, y).unwrap();
                 let offset = y * pitch + x * 4;
-                buffer[offset] = (pixel & 255) as u8;//pixel.b;
-                buffer[offset + 1] = ((pixel >> 8) & 255) as u8;// pixel.g;
-                buffer[offset + 2] = ((pixel >> 16) & 255) as u8; //pixel.r;
-                buffer[offset + 3] = ((pixel >> 24) & 255) as u8;
+                buffer[offset] = pixel.b;
+                buffer[offset + 1] = pixel.g;
+                buffer[offset + 2] = pixel.r;
+                buffer[offset + 3] = pixel.a;
             }
         }
     }).unwrap();
     canvas.clear();
     let _ = canvas.copy(&texture, None, None);
     canvas.present();
+    unsafe {
+        texture.destroy();
+    }
 }
 
 pub fn RGB(r: u8, g: u8, b: u8) -> u32 {
