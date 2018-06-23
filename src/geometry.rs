@@ -8,15 +8,33 @@ pub struct Vertex3 {
     pub position: Vector3<f32>,
     pub color: Color,
     pub uv: Vector2<f32>,
+    pub normal: Vector3<f32>,
 }
 
 impl Vertex3 {
+    pub fn transform_with_correction(&mut self, transformation: Matrix4<f32>) {
+        let homogenous_coordinates = transformation * self.position.extend(1.0);
+        self.position = Vector3{
+            x: homogenous_coordinates.x / homogenous_coordinates.w,
+            y: homogenous_coordinates.y / homogenous_coordinates.w,
+            z: homogenous_coordinates.z / homogenous_coordinates.w,
+        };
+        self.normal = (transformation * self.normal.extend(1.0)).truncate();
+    }
+
     pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
         return Vertex3 {
             position: (transformation * self.position.extend(1.0)).truncate(),
             color: self.color,
             uv: self.uv,
+            normal: (transformation * self.normal.extend(1.0)).truncate(),
         };
+    }
+
+    pub fn transformed_with_correction(&self, transformation: Matrix4<f32>) -> Self {
+        let mut transformed = self.clone();
+        transformed.transform_with_correction(transformation);
+        return transformed;
     }
 
     pub fn to_vertex4(&self, w: f32) -> Vertex4 {
@@ -55,87 +73,107 @@ impl Vertex4 {
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    pub vertices: Vec<Vertex3>,
-    pub triangles: Vec<(usize, usize, usize)>,
+    pub vertices: Vec<(Vertex3, Vertex3, Vertex3)>,
 }
 
 impl Mesh {
-    pub fn xy_face(size: f32) -> Self {
+    pub fn from_triangles(vertices: &Vec<Vertex3>, triangles: &Vec<(usize, usize, usize)>) -> Self {
+        let vertices = triangles.iter().map(|tri| {
+            (vertices[tri.0], vertices[tri.1], vertices[tri.2])
+        }).collect();
         return Mesh{
-            vertices: vec![
+            vertices,
+        };
+    }
+
+    pub fn xy_face(size: f32) -> Self {
+        return Self::from_triangles(
+            &vec![
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: 0.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
             ],
-            triangles: vec![
+            &vec![
                 (0, 1, 2),
                 (1, 2, 3),
             ],
-        };
+        );
     }
 
     pub fn cube(size: f32) -> Self {
-        return Mesh{
-            vertices: vec![
+        let mut cube = Self::from_triangles(
+            &vec![
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: -size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: -size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 0.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: -size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 1.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: -size / 2.0},
                     color: Color::RGB(255, 255, 255),
                     uv: Vector2{x: 0.0, y: 1.0},
+                    normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
             ],
-            triangles: vec![
+            &vec![
                 (0, 1, 2),
                 (1, 2, 3),
                 (1, 5, 3),
@@ -149,58 +187,35 @@ impl Mesh {
                 (2, 3, 6),
                 (3, 6, 7),
             ],
-        };
-    }
-
-    pub fn combine(mesh1: &Mesh, mesh2: &Mesh) -> Self {
-        return Self::combine_many(&vec![mesh1, mesh2]);
-    }
-
-    pub fn combine_many(meshes: &Vec<&Mesh>) -> Self {
-        if meshes.len() == 0 {
-            return Mesh{
-                vertices: vec![],
-                triangles: vec![],
-            }
-        } else {
-            let mut vertices = vec![];
-            let mut triangles = vec![];
-            for mesh in meshes {
-                let shifted_triangles: Vec<(usize, usize, usize)> = mesh.triangles.iter()
-                    .map(|(u1, u2, u3)|
-                        (u1 + vertices.len(), u2 + vertices.len(), u3 + vertices.len()))
-                    .collect();
-                triangles.extend(&shifted_triangles);
-                vertices.extend(&mesh.vertices);
-            }
-            return Mesh {
-                vertices,
-                triangles,
-            };
-        }
+        );
+        cube.compute_normals();
+        return cube;
     }
 
     pub fn transform(&mut self, transformation: Matrix4<f32>) {
-        for vertex in &mut self.vertices {
-            let homogenous_coordinates = transformation * vertex.position.extend(1.0);
-            vertex.position = Vector3{
-                x: homogenous_coordinates.x / homogenous_coordinates.w,
-                y: homogenous_coordinates.y / homogenous_coordinates.w,
-                z: homogenous_coordinates.z / homogenous_coordinates.w,
-            };
+        for triangle in &mut self.vertices {
+            triangle.0.transform_with_correction(transformation);
+            triangle.1.transform_with_correction(transformation);
+            triangle.2.transform_with_correction(transformation);
         }
     }
 
     pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
         let mut mesh = self.clone();
-        for vertex in &mut mesh.vertices {
-            let homogenous_coordinates = transformation * vertex.position.extend(1.0);
-            vertex.position = Vector3{
-                x: homogenous_coordinates.x / homogenous_coordinates.w,
-                y: homogenous_coordinates.y / homogenous_coordinates.w,
-                z: homogenous_coordinates.z / homogenous_coordinates.w,
-            };
+        for (v0, v1, v2) in &mut mesh.vertices {
+            v0.transform_with_correction(transformation);
+            v1.transform_with_correction(transformation);
+            v2.transform_with_correction(transformation);
         }
         return mesh;
+    }
+
+    pub fn compute_normals(&mut self) {
+        for (v0, v1, v2) in &mut self.vertices {
+            let normal = (v1.position - v0.position).cross(v2.position - v0.position);
+            v0.normal = normal;
+            v1.normal = normal;
+            v2.normal = normal;
+        }
     }
 }

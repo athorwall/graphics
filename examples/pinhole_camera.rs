@@ -24,26 +24,23 @@ fn main() {
 
     let mut rasterizer = Rasterizer::create(640, 480);
     let mut mesh = Mesh::cube(1.5);
-    mesh.vertices[0].color = Color::RGB(255, 0, 0);
-    mesh.vertices[1].color = Color::RGB(0, 255, 0);
-    mesh.vertices[2].color = Color::RGB(0, 0, 255);
-    mesh.vertices[3].color = Color::RGB(0, 0, 255);
-    mesh.vertices[4].color = Color::RGB(255, 0, 0);
-    mesh.vertices[5].color = Color::RGB(0, 255, 0);
-    mesh.vertices[6].color = Color::RGB(0, 0, 255);
-    mesh.vertices[7].color = Color::RGB(0, 0, 255);
 
     let camera = Matrix4::look_at(
-        Point3 { x: 0.0, y: 0.0, z: -3.0 },
+        Point3 { x: 0.0, y: 0.0, z: -2.5 },
         Point3 { x: 0.0, y: 0.0, z: 1.0 },
         Vector3{ x: 0.0, y: 1.0, z: 0.0 },
     );
     let perspective = Matrix4::from(perspective(Deg(90.0), 640.0 / 480.0, 0.1, 100.0));
     let transformation = perspective * camera.invert().unwrap();
 
-    let mut texture_frame = Frame::new(2, 2, Color::RGB(255, 255, 255));
-    texture_frame.set(0, 0, Color::RGB(0, 0, 255));
-    texture_frame.set(1, 1, Color::RGB(0, 0, 255));
+    let mut texture_frame = Frame::new(8, 8, Color::RGB(255, 255, 255));
+    for x in 0..8 {
+        for y in 0..8 {
+            if (x + y) % 2 == 0 {
+                texture_frame.set(x, y, Color::RGB(0, 0, 255));
+            }
+        }
+    }
     let texture = Texture::create(texture_frame);
 
     'main: loop {
@@ -75,14 +72,20 @@ fn render_mesh<>(
     texture: &Texture,
 ) {
     let processed_mesh = mesh.clone();
-    let vertices: Vec<Vertex4> = processed_mesh.vertices.iter()
-        .map(|v| process_vertex(&v, world_to_clip_space))
+    let vertices: Vec<(Vertex4, Vertex4, Vertex4)> = processed_mesh.vertices.iter()
+        .map(|(v0, v1, v2)| {
+            return (
+                process_vertex(&v0, world_to_clip_space),
+                process_vertex(&v1, world_to_clip_space),
+                process_vertex(&v2, world_to_clip_space),
+            );
+        })
         .collect();
-    for (v0, v1, v2) in &mesh.triangles {
+    for (v0, v1, v2) in &vertices {
         rasterizer.triangle(
-            vertices[*v0],
-            vertices[*v1],
-            vertices[*v2],
+            *v0,
+            *v1,
+            *v2,
             Some(texture),
         );
     }

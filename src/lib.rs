@@ -10,4 +10,5 @@ pub mod math;
 pub mod rasterizer;
 pub mod sdl_utils;
 pub mod textures;
+pub mod light;
 
