@@ -58,6 +58,15 @@ impl FloatColor {
         )
     }
 
+    pub fn as_sdl_color(&self) -> Color {
+        Color::RGBA(
+            Self::component_as_u8(self.r),
+            Self::component_as_u8(self.g),
+            Self::component_as_u8(self.b),
+            Self::component_as_u8(self.a),
+        )
+    }
+
     pub fn mix_colors(colors: &Vec<Self>, weights: &Vec<f32>) -> Self {
         let mut r = 0.0;
         let mut g = 0.0;

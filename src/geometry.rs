@@ -2,11 +2,12 @@ use cgmath::*;
 use sdl2::{
     pixels::Color,
 };
+use colors::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vertex3 {
     pub position: Vector3<f32>,
-    pub color: Color,
+    pub color: FloatColor,
     pub uv: Vector2<f32>,
     pub normal: Vector3<f32>,
 }
@@ -49,7 +50,7 @@ impl Vertex3 {
 #[derive(Clone, Copy, Debug)]
 pub struct Vertex4 {
     pub position: Vector4<f32>,
-    pub color: Color,
+    pub color: FloatColor,
     pub uv: Vector2<f32>,
 }
 
@@ -91,25 +92,25 @@ impl Mesh {
             &vec![
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: 0.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: 0.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: 0.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: 0.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
@@ -126,49 +127,49 @@ impl Mesh {
             &vec![
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: -size / 2.0, z: -size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: -size / 2.0, z: -size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 0.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: -size / 2.0, y: size / 2.0, z: -size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 1.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },
                 Vertex3 {
                     position: Vector3{x: size / 2.0, y: size / 2.0, z: -size / 2.0},
-                    color: Color::RGB(255, 255, 255),
+                    color: FloatColor::from_rgb(1.0, 1.0, 1.0),
                     uv: Vector2{x: 0.0, y: 1.0},
                     normal: Vector3{x: 0.0, y: 0.0, z: 1.0},
                 },

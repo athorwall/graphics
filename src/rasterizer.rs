@@ -83,10 +83,10 @@ impl Rasterizer {
                             z * bary.1 / v1.position.w,
                             z * bary.2 / v2.position.w,
                         ];
-                        let mut color = mix_colors(
+                        let mut color = FloatColor::mix_colors(
                             &vec![v0.color, v1.color, v2.color],
                             &weights,
-                        );
+                        ).as_sdl_color();
                         match texture {
                             Some(ref t) => {
                                 let uvs = mix_uvs(
