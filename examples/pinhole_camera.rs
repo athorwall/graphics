@@ -93,11 +93,13 @@ fn render_mesh<>(
             );
         })
         .collect();
-    for (v0, v1, v2) in &vertices {
+    for (w0, w1, w2) in &mesh.vertices {
+        let c0 = process_vertex(&w0, world_to_clip_space, lights);
+        let c1 = process_vertex(&w1, world_to_clip_space, lights);
+        let c2 = process_vertex(&w2, world_to_clip_space, lights);
         rasterizer.triangle(
-            *v0,
-            *v1,
-            *v2,
+            (*w0, *w1, *w2),
+            (c0, c1, c2),
             Some(texture),
         );
     }

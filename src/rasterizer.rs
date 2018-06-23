@@ -47,23 +47,22 @@ impl Rasterizer {
 
     pub fn triangle(
         &mut self,
-        v0: Vertex4,
-        v1: Vertex4,
-        v2: Vertex4,
+        world_vertices: (Vertex3, Vertex3, Vertex3),
+        clip_vertices: (Vertex4, Vertex4, Vertex4),
         texture: Option<&Texture>,
     ) {
         let projected_triangle = Triangle{
             p0: Point2{
-                x: ((v0.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
-                y: ((1.0 - v0.position.y) / 2.0) * self.color_buffer.height() as f32,
+                x: ((clip_vertices.0.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - clip_vertices.0.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
             p1: Point2{
-                x: ((v1.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
-                y: ((1.0 - v1.position.y) / 2.0) * self.color_buffer.height() as f32,
+                x: ((clip_vertices.1.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - clip_vertices.1.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
             p2: Point2{
-                x: ((v2.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
-                y: ((1.0 - v2.position.y) / 2.0) * self.color_buffer.height() as f32,
+                x: ((clip_vertices.2.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
+                y: ((1.0 - clip_vertices.2.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
         };
         let bounds =
@@ -73,24 +72,32 @@ impl Rasterizer {
                 let point = Point2{x: x as f32, y: y as f32};
                 if projected_triangle.point_is_inside(point) {
                     let bary = projected_triangle.barycentric_coordinates(point);
-                    let inv_z = (1.0 / v0.position.w) * bary.0
-                        + (1.0 / v1.position.w) * bary.1
-                        + (1.0 / v2.position.w) * bary.2;
+                    let inv_z = (1.0 / clip_vertices.0.position.w) * bary.0
+                        + (1.0 / clip_vertices.1.position.w) * bary.1
+                        + (1.0 / clip_vertices.2.position.w) * bary.2;
                     let z = 1.0 / inv_z;
                     if z < self.z_buffer.at(x as usize, y as usize).unwrap() {
                         let weights = &vec![
-                            z * bary.0 / v0.position.w,
-                            z * bary.1 / v1.position.w,
-                            z * bary.2 / v2.position.w,
+                            z * bary.0 / clip_vertices.0.position.w,
+                            z * bary.1 / clip_vertices.1.position.w,
+                            z * bary.2 / clip_vertices.2.position.w,
                         ];
                         let mut color = FloatColor::mix_colors(
-                            &vec![v0.color, v1.color, v2.color],
+                            &vec![
+                                clip_vertices.0.color,
+                                clip_vertices.1.color,
+                                clip_vertices.2.color,
+                            ],
                             &weights,
                         );
                         match texture {
                             Some(ref t) => {
                                 let uvs = mix_uvs(
-                                    &vec![v0.uv, v1.uv, v2.uv],
+                                    &vec![
+                                        clip_vertices.0.uv,
+                                        clip_vertices.1.uv,
+                                        clip_vertices.2.uv,
+                                    ],
                                     weights,
                                 );
                                 color = FloatColor::multiply_colors(
