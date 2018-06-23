@@ -15,20 +15,22 @@ pub struct Vertex3 {
 impl Vertex3 {
     pub fn transform_with_correction(&mut self, transformation: Matrix4<f32>) {
         let homogenous_coordinates = transformation * self.position.extend(1.0);
+        let normal_matrix = transformation.invert().unwrap().transpose();
         self.position = Vector3{
             x: homogenous_coordinates.x / homogenous_coordinates.w,
             y: homogenous_coordinates.y / homogenous_coordinates.w,
             z: homogenous_coordinates.z / homogenous_coordinates.w,
         };
-        self.normal = (transformation * self.normal.extend(1.0)).truncate();
+        self.normal = (normal_matrix * self.normal.extend(1.0)).truncate();
     }
 
     pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
+        let normal_matrix = transformation.invert().unwrap().transpose();
         return Vertex3 {
             position: (transformation * self.position.extend(1.0)).truncate(),
             color: self.color,
             uv: self.uv,
-            normal: (transformation * self.normal.extend(1.0)).truncate(),
+            normal: (normal_matrix * self.normal.extend(1.0)).truncate(),
         };
     }
 
