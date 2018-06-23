@@ -213,9 +213,10 @@ impl Mesh {
     pub fn compute_normals(&mut self) {
         for (v0, v1, v2) in &mut self.vertices {
             let normal = (v1.position - v0.position).cross(v2.position - v0.position);
-            v0.normal = normal;
-            v1.normal = normal;
-            v2.normal = normal;
+            let normalized_normal = normal / normal.magnitude();
+            v0.normal = normalized_normal;
+            v1.normal = normalized_normal;
+            v2.normal = normalized_normal;
         }
     }
 }

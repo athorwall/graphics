@@ -15,6 +15,7 @@ use sdl2::{
 use timing::Timers;
 use graphics::frame::*;
 use graphics::textures::*;
+use graphics::light::*;
 
 fn main() {
     let ctx = sdl2::init().unwrap();
@@ -42,12 +43,21 @@ fn main() {
         }
     }
     let texture = Texture::create(texture_frame);
+    let lights = vec![
+        Light::directional_light(Vector3{x: -1.0, y: -1.0, z: 1.0})
+    ];
 
     'main: loop {
         rasterizer.clear();
 
         timers.start("render");
-        render_mesh(&mesh, &mut rasterizer, &transformation, &texture);
+        render_mesh(
+            &mesh,
+            &mut rasterizer,
+            &transformation,
+            &lights,
+            &texture,
+        );
         timers.stop("render");
 
         mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
@@ -69,15 +79,16 @@ fn render_mesh<>(
     mesh: &Mesh,
     rasterizer: & mut Rasterizer,
     world_to_clip_space: &Matrix4<f32>,
+    lights: &Vec<Light>,
     texture: &Texture,
 ) {
     let processed_mesh = mesh.clone();
     let vertices: Vec<(Vertex4, Vertex4, Vertex4)> = processed_mesh.vertices.iter()
         .map(|(v0, v1, v2)| {
             return (
-                process_vertex(&v0, world_to_clip_space),
-                process_vertex(&v1, world_to_clip_space),
-                process_vertex(&v2, world_to_clip_space),
+                process_vertex(&v0, world_to_clip_space, lights),
+                process_vertex(&v1, world_to_clip_space, lights),
+                process_vertex(&v2, world_to_clip_space, lights),
             );
         })
         .collect();
@@ -91,7 +102,7 @@ fn render_mesh<>(
     }
 }
 
-fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>) -> Vertex4 {
+fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>, lights: &Vec<Light>) -> Vertex4 {
     let transformed_vertex =  Vertex4{
         position: world_to_clip_space * vertex.to_vertex4(1.0).position,
         color: vertex.color,

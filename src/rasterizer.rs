@@ -14,6 +14,7 @@ use num_traits::Float;
 use geometry::*;
 use std::borrow::*;
 use textures::*;
+use colors::*;
 
 pub struct Rasterizer {
     z_buffer: Frame<f32>,
