@@ -82,36 +82,48 @@ impl Rasterizer {
                             z * bary.1 / clip_vertices.1.position.w,
                             z * bary.2 / clip_vertices.2.position.w,
                         ];
-                        let mut color = FloatColor::mix_colors(
+                        let normal = (world_vertices.0.normal * weights[0])
+                            + (world_vertices.1.normal * weights[1])
+                            + (world_vertices.2.normal * weights[2]);
+                        let uvs = mix_uvs(
                             &vec![
-                                clip_vertices.0.color,
-                                clip_vertices.1.color,
-                                clip_vertices.2.color,
+                                clip_vertices.0.uv,
+                                clip_vertices.1.uv,
+                                clip_vertices.2.uv,
                             ],
-                            &weights,
+                            weights,
                         );
-                        match texture {
-                            Some(ref t) => {
-                                let uvs = mix_uvs(
-                                    &vec![
-                                        clip_vertices.0.uv,
-                                        clip_vertices.1.uv,
-                                        clip_vertices.2.uv,
-                                    ],
-                                    weights,
-                                );
-                                color = FloatColor::multiply_colors(
-                                    &color,
-                                    &FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y)),
-                                );
-                            },
-                            None => {},
-                        };
+                        let color = Self::process_fragment(
+                            Vector3{x: 0.0, y: 0.0, z: 0.0},
+                            normal,
+                            uvs,
+                            texture,
+                        );
                         self.color_buffer.set(x as usize, y as usize, color.as_sdl_color());
                         self.z_buffer.set(x as usize, y as usize, z);
                     }
                 }
             }
+        }
+    }
+
+    fn process_fragment(
+        world_coordinates: Vector3<f32>,
+        world_normals: Vector3<f32>,
+        uvs: Vector2<f32>,
+        texture: Option<&Texture>,
+    ) -> FloatColor {
+        match texture {
+            Some(ref t) => {
+                /*
+                FloatColor::multiply_colors(
+                    &color,
+                    &FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y)),
+                )
+                */
+                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y))
+            },
+            None => FloatColor::from_rgb(1.0, 1.0, 1.0),
         }
     }
 

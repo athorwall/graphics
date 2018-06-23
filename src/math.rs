@@ -126,8 +126,9 @@ impl <T> Triangle<T> {
 }
 
 pub fn on_right<T: Float + Copy>(point: Point2<T>, line_p1: Point2<T>, line_p2: Point2<T>) -> bool {
+    // on_right OR on, really
     return (point.x - line_p1.x) * (line_p2.y - line_p1.y) -
-        (point.y - line_p1.y) * (line_p2.x - line_p1.x) > T::zero();
+        (point.y - line_p1.y) * (line_p2.x - line_p1.x) >= T::zero();
 }
 
 pub fn mix_colors(colors: &Vec<Color>, weights: &Vec<f32>) -> Color {

@@ -83,16 +83,6 @@ fn render_mesh<>(
     lights: &Vec<Light>,
     texture: &Texture,
 ) {
-    let processed_mesh = mesh.clone();
-    let vertices: Vec<(Vertex4, Vertex4, Vertex4)> = processed_mesh.vertices.iter()
-        .map(|(v0, v1, v2)| {
-            return (
-                process_vertex(&v0, world_to_clip_space, lights),
-                process_vertex(&v1, world_to_clip_space, lights),
-                process_vertex(&v2, world_to_clip_space, lights),
-            );
-        })
-        .collect();
     for (w0, w1, w2) in &mesh.vertices {
         let c0 = process_vertex(&w0, world_to_clip_space, lights);
         let c1 = process_vertex(&w1, world_to_clip_space, lights);
