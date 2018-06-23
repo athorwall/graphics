@@ -1,7 +1,10 @@
 use cgmath::*;
+use colors::*;
 
 pub struct Light {
     pub light_type: LightType,
+    pub color: FloatColor,
+    pub intensity: f32,
 }
 
 impl Light {
@@ -9,7 +12,9 @@ impl Light {
         Light{
             light_type: LightType::Point(PointLight{
                 position: pos,
-            })
+            }),
+            color: FloatColor::from_rgb(1.0, 1.0, 1.0),
+            intensity: 1.0,
         }
     }
 
@@ -17,7 +22,9 @@ impl Light {
         Light{
             light_type: LightType::Directional(DirectionalLight{
                 direction: dir,
-            })
+            }),
+            color: FloatColor::from_rgb(1.0, 1.0, 1.0),
+            intensity: 1.0,
         }
     }
 }

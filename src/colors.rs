@@ -58,6 +58,15 @@ impl FloatColor {
         )
     }
 
+    pub fn from_sdl_color(color: &Color) -> Self {
+        Self::from_argb_u8s(
+            color.a,
+            color.r,
+            color.g,
+            color.b,
+        )
+    }
+
     pub fn as_sdl_color(&self) -> Color {
         Color::RGBA(
             Self::component_as_u8(self.r),
@@ -68,10 +77,16 @@ impl FloatColor {
     }
 
     pub fn mix_colors(colors: &Vec<Self>, weights: &Vec<f32>) -> Self {
-        let mut r = 0.0;
-        let mut g = 0.0;
-        let mut b = 0.0;
-        return colors.iter().zip(weights).map(|(c, w)| *c * *w).sum();
+        colors.iter().zip(weights).map(|(c, w)| *c * *w).sum()
+    }
+
+    pub fn multiply_colors(color1: &FloatColor, color2: &FloatColor) -> Self {
+        Self::from_argb(
+            color1.a * color2.a,
+            color1.r * color2.r,
+            color1.g * color2.g,
+            color1.b * color2.b,
+        )
     }
 
     fn component_as_u8(component: f32) -> u8 {

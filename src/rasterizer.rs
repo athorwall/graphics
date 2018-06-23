@@ -86,18 +86,21 @@ impl Rasterizer {
                         let mut color = FloatColor::mix_colors(
                             &vec![v0.color, v1.color, v2.color],
                             &weights,
-                        ).as_sdl_color();
+                        );
                         match texture {
                             Some(ref t) => {
                                 let uvs = mix_uvs(
                                     &vec![v0.uv, v1.uv, v2.uv],
                                     weights,
                                 );
-                                color = t.sample(uvs.x, uvs.y);
+                                color = FloatColor::multiply_colors(
+                                    &color,
+                                    &FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y)),
+                                );
                             },
                             None => {},
                         };
-                        self.color_buffer.set(x as usize, y as usize, color);
+                        self.color_buffer.set(x as usize, y as usize, color.as_sdl_color());
                         self.z_buffer.set(x as usize, y as usize, z);
                     }
                 }

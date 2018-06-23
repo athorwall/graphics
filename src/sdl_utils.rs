@@ -60,6 +60,3 @@ pub fn render_to_canvas(
     }
 }
 
-pub fn RGB(r: u8, g: u8, b: u8) -> u32 {
-    return (255 << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
-}

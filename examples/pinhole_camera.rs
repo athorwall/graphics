@@ -16,6 +16,7 @@ use timing::Timers;
 use graphics::frame::*;
 use graphics::textures::*;
 use graphics::light::*;
+use graphics::colors::*;
 
 fn main() {
     let ctx = sdl2::init().unwrap();
@@ -103,10 +104,40 @@ fn render_mesh<>(
 }
 
 fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>, lights: &Vec<Light>) -> Vertex4 {
+    let lights_color = calculate_lights(vertex, lights);
     let transformed_vertex =  Vertex4{
         position: world_to_clip_space * vertex.to_vertex4(1.0).position,
-        color: vertex.color,
+        color: lights_color,
         uv: vertex.uv,
     };
     return transformed_vertex.perspective_adjusted();
 }
+
+fn calculate_lights(vertex: &Vertex3, lights: &Vec<Light>) -> FloatColor {
+    lights.iter().map(|light| calculate_light(vertex, light)).sum()
+}
+
+fn calculate_light(vertex: &Vertex3, light: &Light) -> FloatColor {
+    return match light.light_type {
+        LightType::Point(ref point_light) => {
+            /*
+            let ray = vertex.position - point_light.position;
+            let normalized_ray = ray / ray.magnitude();
+            ray.dot(vertex.normal)
+            */
+            return FloatColor::from_rgb(1.0, 1.0, 1.0);
+        },
+        LightType::Directional(ref directional_light) => {
+            let normalized_direction =
+                directional_light.direction / directional_light.direction.magnitude();
+            // TODO: intensity and color
+            let c = normalized_direction.dot(vertex.normal);
+            if c > 0.0 {
+                FloatColor::from_rgb(c, c, c)
+            } else {
+                FloatColor::from_rgb(0.0, 0.0, 0.0)
+            }
+        },
+    }
+}
+
