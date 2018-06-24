@@ -26,20 +26,15 @@ fn main() {
     let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
 
     let mut rasterizer = Rasterizer::create(1000, 800);
-    let mut mesh = Mesh::cube(1.5);
-
-    let camera = Matrix4::look_at(
-        Point3 { x: 0.0, y: 0.0, z: -2.5 },
-        Point3 { x: 0.0, y: 0.0, z: 1.0 },
-        Vector3{ x: 0.0, y: 1.0, z: 0.0 },
-    );
-    let perspective = Matrix4::from(perspective(Deg(90.0), 640.0 / 480.0, 0.1, 100.0));
+    let mut mesh = Mesh::xy_face(3.5).transformed(Matrix4::from_angle_x(Deg(90.0)));
+    let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 0.5, z: 2.0});
+    let perspective = Matrix4::from(perspective(Deg(90.0), 1000.0 / 800.0, 0.1, 100.0));
     let transformation = perspective * camera.invert().unwrap();
 
-    let mut texture_frame = Frame::new(8, 8, Color::RGB(255, 255, 255));
-    for x in 0..8 {
-        for y in 0..8 {
-            if (x + y) % 2 == 0 {
+    let mut texture_frame = Frame::new(64, 64, Color::RGB(255, 255, 255));
+    for x in 0..64 {
+        for y in 0..64 {
+            if ((x / 8) + (y / 8)) % 2 == 0 {
                 texture_frame.set(x, y, Color::RGB(0, 0, 255));
             }
         }
@@ -70,7 +65,7 @@ fn main() {
         );
         timers.stop("render");
 
-        mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
+        //mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
 
         timers.start("canvas");
         render_to_canvas(&mut canvas, rasterizer.get_color_buffer());

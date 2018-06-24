@@ -58,11 +58,14 @@ impl Rasterizer {
         texture: Option<&Texture>,
         material: &Material,
     ) {
+        // Return if triangle is facing away from camera.
         let edge1 = (clip_vertices.1.position - clip_vertices.0.position).truncate();
         let edge2 = (clip_vertices.2.position - clip_vertices.0.position).truncate();
         if edge1.cross(edge2).dot(Vector3{x: 0.0, y: 0.0, z: -1.0}) < 0.0 {
             return;
         }
+
+        // Compute coordinates of triangle in screen space.
         let projected_triangle = Triangle{
             p0: Point2{
                 x: ((clip_vertices.0.position.x + 1.0) / 2.0) * self.color_buffer.width() as f32,
@@ -112,12 +115,12 @@ impl Rasterizer {
                                 + clip_vertices.1.uv * w1
                                 + clip_vertices.2.uv * w2;
                             let color = Self::process_fragment(
-                                Vector3{x: 0.0, y: 0.0, z: 0.0},
-                                normal,
-                                uvs,
+                                &Vector3{x: 0.0, y: 0.0, z: 0.0},
+                                &normal,
+                                &uvs,
                                 lights,
                                 ambient,
-                                texture,
+                                &texture,
                                 material,
                             );
                             self.color_buffer.set(x as usize, y as usize, color.as_sdl_color());
@@ -131,17 +134,17 @@ impl Rasterizer {
     }
 
     fn process_fragment(
-        world_coordinates: Vector3<f32>,
-        world_normals: Vector3<f32>,
-        uvs: Vector2<f32>,
+        world_coordinates: &Vector3<f32>,
+        world_normals: &Vector3<f32>,
+        uvs: &Vector2<f32>,
         lights: &Vec<Light>,
         ambient: &FloatColor,
-        texture: Option<&Texture>,
+        texture: &Option<&Texture>,
         material: &Material,
     ) -> FloatColor {
         let texture_color = match texture {
             Some(ref t) => {
-                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y))
+                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::NearestNeighbor))
             },
             None => FloatColor::from_rgb(1.0, 1.0, 1.0),
         };

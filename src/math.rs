@@ -108,14 +108,21 @@ impl <T> Triangle<T> {
         let l01 = Line::new(self.p0, self.p1);
         let l02 = Line::new(self.p0, self.p2);
         let l12 = Line::new(self.p1, self.p2);
-        let r = Ray::new(
+        let r1 = Ray::new(
             Point2{x: T::zero(), y},
             Vector2{x: T::one(), y: T::zero()}
         );
+        let r2 = Ray::new(
+            Point2{x: T::zero(), y},
+            Vector2{x: -T::one(), y: T::zero()}
+        );
         let points = [
-            r.intersection(&l01),
-            r.intersection(&l02),
-            r.intersection(&l12),
+            r1.intersection(&l01),
+            r1.intersection(&l02),
+            r1.intersection(&l12),
+            r2.intersection(&l01),
+            r2.intersection(&l02),
+            r2.intersection(&l12),
         ];
         let optional_min = points.iter()
             .filter_map(|optional_point| *optional_point)
