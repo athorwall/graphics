@@ -83,6 +83,8 @@ fn main() {
             }
         }
     }
+
+    println!("{}", timers);
 }
 
 fn render_mesh<>(
