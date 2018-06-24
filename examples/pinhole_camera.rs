@@ -98,6 +98,7 @@ fn render_mesh<>(
         rasterizer.triangle(
             (*w0, *w1, *w2),
             (c0, c1, c2),
+            lights,
             Some(texture),
             material,
         );

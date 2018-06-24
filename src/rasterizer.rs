@@ -16,6 +16,7 @@ use std::borrow::*;
 use textures::*;
 use colors::*;
 use materials::*;
+use light::*;
 
 pub struct Rasterizer {
     z_buffer: Frame<f32>,
@@ -50,6 +51,7 @@ impl Rasterizer {
         &mut self,
         world_vertices: (Vertex3, Vertex3, Vertex3),
         clip_vertices: (Vertex4, Vertex4, Vertex4),
+        lights: &Vec<Light>,
         texture: Option<&Texture>,
         material: &Material,
     ) {
@@ -99,6 +101,7 @@ impl Rasterizer {
                             Vector3{x: 0.0, y: 0.0, z: 0.0},
                             normal,
                             uvs,
+                            lights,
                             texture,
                             material,
                         );
@@ -114,21 +117,43 @@ impl Rasterizer {
         world_coordinates: Vector3<f32>,
         world_normals: Vector3<f32>,
         uvs: Vector2<f32>,
+        lights: &Vec<Light>,
         texture: Option<&Texture>,
         material: &Material,
     ) -> FloatColor {
-        match texture {
+        let texture_color = match texture {
             Some(ref t) => {
-                /*
-                FloatColor::multiply_colors(
-                    &color,
-                    &FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y)),
-                )
-                */
                 FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y))
             },
             None => FloatColor::from_rgb(1.0, 1.0, 1.0),
-        }
+        };
+        let light_color = lights.iter()
+            .map(|light| {
+                Self::process_fragment_light(
+                    world_coordinates,
+                    world_normals,
+                    light,
+                    material
+                )
+            })
+            .sum();
+        FloatColor::multiply_colors(&texture_color, &light_color)
+    }
+
+    fn process_fragment_light(
+        world_coordinates: Vector3<f32>,
+        world_normals: Vector3<f32>,
+        light: &Light,
+        material: &Material,
+    ) -> FloatColor {
+        let intensity = match light.light_type {
+            LightType::Directional(ref directional_light) => {
+                let normalized_direction = directional_light.direction / directional_light.direction.magnitude();
+                normalized_direction.dot(world_normals)
+            }
+            _ => 1.0,
+        };
+        FloatColor::multiply_colors(&material.diffuse, &light.color) * intensity
     }
 
     pub fn clear(&mut self) {
