@@ -93,12 +93,31 @@ impl FloatColor {
         )
     }
 
+    pub fn clamped(&self) -> Self {
+        Self::from_argb(
+            Self::clamp_component(self.a),
+            Self::clamp_component(self.r),
+            Self::clamp_component(self.g),
+            Self::clamp_component(self.b),
+        )
+    }
+
     fn component_as_u8(component: f32) -> u8 {
         (component * 255.0) as u8
     }
 
     fn component_as_f32(component: u8) -> f32 {
         (component as f32) / 255.0
+    }
+
+    fn clamp_component(component: f32) -> f32 {
+        if component > 1.0 {
+            1.0
+        } else if component < 0.0 {
+            0.0
+        } else {
+            component
+        }
     }
 }
 

@@ -145,7 +145,8 @@ impl Rasterizer {
         let ambient_color = FloatColor::multiply_colors(ambient, &material.ambient);
         let total_light_color = ambient_color + color_from_lights;
 
-        FloatColor::multiply_colors(&texture_color, &total_light_color)
+        let net_color = FloatColor::multiply_colors(&texture_color, &total_light_color);
+        net_color.clamped()
     }
 
     fn process_fragment_light(

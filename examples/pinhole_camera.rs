@@ -53,7 +53,7 @@ fn main() {
     let lights = vec![
         Light::directional_light(Vector3{x: -1.0, y: -1.0, z: 1.0})
     ];
-    let ambient = FloatColor::from_rgb(1.0, 1.0, 1.0);
+    let ambient = FloatColor::from_rgb(0.1, 0.1, 0.1);
 
     'main: loop {
         rasterizer.clear();
