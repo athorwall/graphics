@@ -102,27 +102,16 @@ impl <T> Triangle<T> {
     }
 
     pub fn point_is_inside(&self, point: Point2<T>) -> bool where T: Float + Copy {
-        return (on_right(point, self.p0, self.p1)
-            && on_right(point, self.p1, self.p2)
-            && on_right(point, self.p2, self.p0))
-            || (on_right(point, self.p0, self.p2)
+        // Note: we assume that the triangle's points are ordered counter-clockwise, which is true
+        // because we use a right-hand coordinate system.
+        return on_right(point, self.p0, self.p2)
             && on_right(point, self.p2, self.p1)
-            && on_right(point, self.p1, self.p0));
+            && on_right(point, self.p1, self.p0);
     }
 
     pub fn area(&self) -> T where T: BaseFloat {
-        let side1 = Vector3{
-            x: self.p1.x - self.p0.x,
-            y: self.p1.y - self.p0.y,
-            z: T::zero(),
-        };
-        let side2 = Vector3{
-            x: self.p2.x - self.p0.x,
-            y: self.p2.y - self.p0.y,
-            z: T::zero(),
-        };
-        let cross = side1.cross(side2);
-        return cross.magnitude() / (T::one() + T::one());
+        return (self.p1.x - self.p0.x) * (self.p2.y - self.p0.y)
+            - (self.p1.y - self.p0.y) * (self.p2.x - self.p0.x);
     }
 
     pub fn barycentric_coordinates(&self, point: Point2<T>) -> (T, T, T) where T: BaseFloat {
@@ -161,20 +150,6 @@ pub fn mix_colors(colors: &Vec<Color>, weights: &Vec<f32>) -> Color {
         b += (weight * (color.b as f32)) as u8;
     }
     return Color{a: 255, r, g, b};
-}
-
-pub fn mix_uvs(
-    uv0: &Vector2<f32>,
-    uv1: &Vector2<f32>,
-    uv2: &Vector2<f32>,
-    w0: f32,
-    w1: f32,
-    w2: f32,
-) -> Vector2<f32> {
-    return Vector2{
-        x: uv0.x * w0 + uv1.x * w1 + uv2.x * w2,
-        y: uv0.y * w0 + uv1.y * w1 + uv2.y * w2,
-    };
 }
 
 /*

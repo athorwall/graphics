@@ -84,25 +84,23 @@ impl Rasterizer {
                 let point = Point2{x: x as f32, y: y as f32};
                 if projected_triangle.point_is_inside(point) {
                     let bary = projected_triangle.barycentric_coordinates(point);
-                    let inv_z = (1.0 / clip_vertices.0.position.w) * bary.0
-                        + (1.0 / clip_vertices.1.position.w) * bary.1
-                        + (1.0 / clip_vertices.2.position.w) * bary.2;
+                    let adjusted_bary = (
+                        bary.0 / clip_vertices.0.position.w,
+                        bary.1 / clip_vertices.1.position.w,
+                        bary.2 / clip_vertices.2.position.w,
+                    );
+                    let inv_z = adjusted_bary.0 + adjusted_bary.1 + adjusted_bary.2;
                     let z = 1.0 / inv_z;
                     if z < self.z_buffer.at(x as usize, y as usize).unwrap() {
-                        let w0 = z * bary.0 / clip_vertices.0.position.w;
-                        let w1 = z * bary.1 / clip_vertices.1.position.w;
-                        let w2 = z * bary.2 / clip_vertices.2.position.w;
+                        let w0 = z * adjusted_bary.0;
+                        let w1 = z * adjusted_bary.1;
+                        let w2 = z * adjusted_bary.2;
                         let normal = (world_vertices.0.normal * w0)
                             + (world_vertices.1.normal * w1)
                             + (world_vertices.2.normal * w2);
-                        let uvs = mix_uvs(
-                            &clip_vertices.0.uv,
-                            &clip_vertices.1.uv,
-                            &clip_vertices.2.uv,
-                            w0,
-                            w1,
-                            w2,
-                        );
+                        let uvs = clip_vertices.0.uv * w0
+                            + clip_vertices.1.uv * w1
+                            + clip_vertices.2.uv * w2;
                         let color = Self::process_fragment(
                             Vector3{x: 0.0, y: 0.0, z: 0.0},
                             normal,
@@ -162,8 +160,7 @@ impl Rasterizer {
     ) -> FloatColor {
         let intensity = match light.light_type {
             LightType::Directional(ref directional_light) => {
-                let normalized_direction = directional_light.direction / directional_light.direction.magnitude();
-                let intensity = normalized_direction.dot(*world_normals);
+                let intensity = directional_light.direction.dot(*world_normals);
                 if intensity < 0.0 { 0.0 } else { intensity }
             }
             /*
