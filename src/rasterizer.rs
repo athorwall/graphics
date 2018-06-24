@@ -89,21 +89,19 @@ impl Rasterizer {
                         + (1.0 / clip_vertices.2.position.w) * bary.2;
                     let z = 1.0 / inv_z;
                     if z < self.z_buffer.at(x as usize, y as usize).unwrap() {
-                        let weights = &vec![
-                            z * bary.0 / clip_vertices.0.position.w,
-                            z * bary.1 / clip_vertices.1.position.w,
-                            z * bary.2 / clip_vertices.2.position.w,
-                        ];
-                        let normal = (world_vertices.0.normal * weights[0])
-                            + (world_vertices.1.normal * weights[1])
-                            + (world_vertices.2.normal * weights[2]);
+                        let w0 = z * bary.0 / clip_vertices.0.position.w;
+                        let w1 = z * bary.1 / clip_vertices.1.position.w;
+                        let w2 = z * bary.2 / clip_vertices.2.position.w;
+                        let normal = (world_vertices.0.normal * w0)
+                            + (world_vertices.1.normal * w1)
+                            + (world_vertices.2.normal * w2);
                         let uvs = mix_uvs(
-                            &vec![
-                                clip_vertices.0.uv,
-                                clip_vertices.1.uv,
-                                clip_vertices.2.uv,
-                            ],
-                            weights,
+                            &clip_vertices.0.uv,
+                            &clip_vertices.1.uv,
+                            &clip_vertices.2.uv,
+                            w0,
+                            w1,
+                            w2,
                         );
                         let color = Self::process_fragment(
                             Vector3{x: 0.0, y: 0.0, z: 0.0},

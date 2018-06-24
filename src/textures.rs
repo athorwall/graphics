@@ -18,7 +18,7 @@ impl Texture {
         let iy = (y * (self.buffer.height() as f32).round()) as i32;
         let constrained_ix = Self::constrain(ix, 0, self.buffer.width() as i32 - 1);
         let constrained_iy = Self::constrain(iy, 0, self.buffer.height() as i32 - 1);
-        return self.buffer.at(constrained_ix as usize, constrained_iy as usize * 0).unwrap();
+        return self.buffer.at(constrained_ix as usize, constrained_iy as usize).unwrap();
     }
 
     // make generic

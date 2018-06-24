@@ -36,9 +36,9 @@ fn main() {
     let perspective = Matrix4::from(perspective(Deg(90.0), 640.0 / 480.0, 0.1, 100.0));
     let transformation = perspective * camera.invert().unwrap();
 
-    let mut texture_frame = Frame::new(1, 1, Color::RGB(255, 255, 255));
-    for x in 0..1 {
-        for y in 0..1 {
+    let mut texture_frame = Frame::new(8, 8, Color::RGB(255, 255, 255));
+    for x in 0..8 {
+        for y in 0..8 {
             if (x + y) % 2 == 0 {
                 texture_frame.set(x, y, Color::RGB(0, 0, 255));
             }

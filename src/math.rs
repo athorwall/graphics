@@ -163,13 +163,18 @@ pub fn mix_colors(colors: &Vec<Color>, weights: &Vec<f32>) -> Color {
     return Color{a: 255, r, g, b};
 }
 
-pub fn mix_uvs(uvs: &Vec<Vector2<f32>>, weights: &Vec<f32>) -> Vector2<f32> {
-    let mut v = Vector2{x: 0.0, y: 0.0};
-    for (i, uv) in uvs.iter().enumerate() {
-        let weight = weights.get(i).unwrap_or(&0.0);
-        v += *weight * *uv;
-    }
-    return v;
+pub fn mix_uvs(
+    uv0: &Vector2<f32>,
+    uv1: &Vector2<f32>,
+    uv2: &Vector2<f32>,
+    w0: f32,
+    w1: f32,
+    w2: f32,
+) -> Vector2<f32> {
+    return Vector2{
+        x: uv0.x * w0 + uv1.x * w1 + uv2.x * w2,
+        y: uv0.y * w0 + uv1.y * w1 + uv2.y * w2,
+    };
 }
 
 /*
