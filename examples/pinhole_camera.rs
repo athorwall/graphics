@@ -17,6 +17,7 @@ use graphics::frame::*;
 use graphics::textures::*;
 use graphics::light::*;
 use graphics::colors::*;
+use graphics::materials::*;
 
 fn main() {
     let ctx = sdl2::init().unwrap();
@@ -44,6 +45,11 @@ fn main() {
         }
     }
     let texture = Texture::create(texture_frame);
+    let material = Material{
+        diffuse: FloatColor::from_rgb(1.0, 1.0, 1.0),
+        specular: FloatColor::from_rgb(1.0, 1.0, 1.0),
+        ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
+    };
     let lights = vec![
         Light::directional_light(Vector3{x: -1.0, y: -1.0, z: 1.0})
     ];
@@ -58,6 +64,7 @@ fn main() {
             &transformation,
             &lights,
             &texture,
+            &material,
         );
         timers.stop("render");
 
@@ -82,6 +89,7 @@ fn render_mesh<>(
     world_to_clip_space: &Matrix4<f32>,
     lights: &Vec<Light>,
     texture: &Texture,
+    material: &Material,
 ) {
     for (w0, w1, w2) in &mesh.vertices {
         let c0 = process_vertex(&w0, world_to_clip_space, lights);
@@ -91,6 +99,7 @@ fn render_mesh<>(
             (*w0, *w1, *w2),
             (c0, c1, c2),
             Some(texture),
+            material,
         );
     }
 }
@@ -99,7 +108,6 @@ fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>, lights: 
     let lights_color = calculate_lights(vertex, lights);
     let transformed_vertex =  Vertex4{
         position: world_to_clip_space * vertex.to_vertex4(1.0).position,
-        color: lights_color,
         uv: vertex.uv,
     };
     return transformed_vertex.perspective_adjusted();

@@ -15,6 +15,7 @@ use geometry::*;
 use std::borrow::*;
 use textures::*;
 use colors::*;
+use materials::*;
 
 pub struct Rasterizer {
     z_buffer: Frame<f32>,
@@ -50,6 +51,7 @@ impl Rasterizer {
         world_vertices: (Vertex3, Vertex3, Vertex3),
         clip_vertices: (Vertex4, Vertex4, Vertex4),
         texture: Option<&Texture>,
+        material: &Material,
     ) {
         let projected_triangle = Triangle{
             p0: Point2{
@@ -98,6 +100,7 @@ impl Rasterizer {
                             normal,
                             uvs,
                             texture,
+                            material,
                         );
                         self.color_buffer.set(x as usize, y as usize, color.as_sdl_color());
                         self.z_buffer.set(x as usize, y as usize, z);
@@ -112,6 +115,7 @@ impl Rasterizer {
         world_normals: Vector3<f32>,
         uvs: Vector2<f32>,
         texture: Option<&Texture>,
+        material: &Material,
     ) -> FloatColor {
         match texture {
             Some(ref t) => {
