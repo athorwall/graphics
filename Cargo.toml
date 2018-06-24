@@ -6,6 +6,7 @@ authors = ["Andrew Thorwall <anthor@umich.edu>"]
 [dependencies]
 cgmath = "0.16.1"
 num-traits = "0.2.4"
+collision = "0.18.0"
 
 [dependencies.sdl2]
 version = "0.31.0"

@@ -1,4 +1,5 @@
 extern crate cgmath;
+extern crate collision;
 extern crate num_traits;
 extern crate sdl2;
 extern crate timing;

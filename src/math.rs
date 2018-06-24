@@ -15,6 +15,9 @@ use std;
 use sdl2::pixels::Color;
 use std::cmp::max;
 use std::cmp::min;
+use collision::Ray;
+use collision::Line;
+use collision::Continuous;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct RectBounds<T> {
@@ -98,6 +101,33 @@ impl <T> Triangle<T> {
                 p1: points[1],
                 p2: points[2],
             });
+        }
+    }
+
+    pub fn bounds_at_height(&self, y: T) -> Option<(T, T)> where T: BaseFloat {
+        let l01 = Line::new(self.p0, self.p1);
+        let l02 = Line::new(self.p0, self.p2);
+        let l12 = Line::new(self.p1, self.p2);
+        let r = Ray::new(
+            Point2{x: T::zero(), y},
+            Vector2{x: T::one(), y: T::zero()}
+        );
+        let points = [
+            r.intersection(&l01),
+            r.intersection(&l02),
+            r.intersection(&l12),
+        ];
+        let optional_min = points.iter()
+            .filter_map(|optional_point| *optional_point)
+            .map(|point| point.x)
+            .min_by(|x, y| if x > y { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less });
+        let optional_max = points.iter()
+            .filter_map(|optional_point| *optional_point)
+            .map(|point| point.x)
+            .max_by(|x, y| if x > y { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less });
+        match (optional_min, optional_max) {
+            (Some(min), Some(max)) => Some((min, max)),
+            _ => None,
         }
     }
 

@@ -23,9 +23,9 @@ fn main() {
     let ctx = sdl2::init().unwrap();
     let mut events = ctx.event_pump().unwrap();
     let mut timers = Timers::new();
-    let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
+    let mut canvas = create_sdl_canvas(&ctx, 50, 50);
 
-    let mut rasterizer = Rasterizer::create(1000, 800);
+    let mut rasterizer = Rasterizer::create(50, 50);
     let mut mesh = Mesh::cube(1.5);
 
     let camera = Matrix4::look_at(
