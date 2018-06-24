@@ -72,7 +72,13 @@ impl Rasterizer {
             },
         };
         let bounds =
-            RectBounds::<u32>::from(RectBounds::bounds_of_triangle(projected_triangle));
+            RectBounds::<i32>::from(RectBounds::bounds_of_triangle(projected_triangle))
+                .overlap(RectBounds{
+                    left: 0,
+                    bottom: 0,
+                    right: (self.screen_width - 1) as i32,
+                    top: (self.screen_height - 1) as i32,
+                });
         for x in bounds.left..bounds.right {
             for y in bounds.bottom..bounds.top {
                 let point = Point2{x: x as f32, y: y as f32};
@@ -134,8 +140,8 @@ impl Rasterizer {
         let color_from_lights = lights.iter()
             .map(|light| {
                 Self::process_fragment_light(
-                    world_coordinates,
-                    world_normals,
+                    &world_coordinates,
+                    &world_normals,
                     light,
                     ambient,
                     material,
@@ -150,8 +156,8 @@ impl Rasterizer {
     }
 
     fn process_fragment_light(
-        world_coordinates: Vector3<f32>,
-        world_normals: Vector3<f32>,
+        world_coordinates: &Vector3<f32>,
+        world_normals: &Vector3<f32>,
         light: &Light,
         ambient: &FloatColor,
         material: &Material,
@@ -159,9 +165,14 @@ impl Rasterizer {
         let intensity = match light.light_type {
             LightType::Directional(ref directional_light) => {
                 let normalized_direction = directional_light.direction / directional_light.direction.magnitude();
-                let intensity = normalized_direction.dot(world_normals);
+                let intensity = normalized_direction.dot(*world_normals);
                 if intensity < 0.0 { 0.0 } else { intensity }
             }
+            /*
+            LightType::Point(ref point_light) => {
+                let normalize
+            }
+            */
             _ => 1.0,
         };
         FloatColor::multiply_colors(&material.diffuse, &light.color) * intensity

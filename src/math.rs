@@ -13,8 +13,10 @@ use cgmath::{
 use std::ops::Add;
 use std;
 use sdl2::pixels::Color;
+use std::cmp::max;
+use std::cmp::min;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct RectBounds<T> {
     pub top: T,
     pub bottom: T,
@@ -46,6 +48,23 @@ impl <T: 'static> RectBounds<T> {
             }),
             _ => None,
         }
+    }
+
+    pub fn overlap(&self, bounds: RectBounds<T>) -> RectBounds<T> where T: BaseNum + Ord {
+        let mut overlap = *self;
+        if overlap.left < bounds.left {
+            overlap.left = min(self.right, bounds.left);
+        }
+        if overlap.right > bounds.right {
+            overlap.right = max(self.left, bounds.right);
+        }
+        if overlap.bottom < bounds.bottom {
+            overlap.bottom = min(self.top, bounds.bottom);
+        }
+        if overlap.top > bounds.top {
+            overlap.top = max(self.bottom, bounds.top);
+        }
+        overlap
     }
 
     pub fn bounds_of_triangle(triangle: Triangle<T>) -> RectBounds<T> where T: BaseNum {

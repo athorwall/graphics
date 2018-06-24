@@ -1,7 +1,7 @@
 pub struct Frame<T> {
-    width: usize,
-    height: usize,
-    cells: Vec<T>,
+    pub width: usize,
+    pub height: usize,
+    pub cells: Vec<T>,
 }
 
 impl <T: Copy> Frame<T> {
