@@ -53,6 +53,7 @@ fn main() {
     let lights = vec![
         Light::directional_light(Vector3{x: -1.0, y: -1.0, z: 1.0})
     ];
+    let ambient = FloatColor::from_rgb(1.0, 1.0, 1.0);
 
     'main: loop {
         rasterizer.clear();
@@ -63,6 +64,7 @@ fn main() {
             &mut rasterizer,
             &transformation,
             &lights,
+            &ambient,
             &texture,
             &material,
         );
@@ -88,6 +90,7 @@ fn render_mesh<>(
     rasterizer: & mut Rasterizer,
     world_to_clip_space: &Matrix4<f32>,
     lights: &Vec<Light>,
+    ambient: &FloatColor,
     texture: &Texture,
     material: &Material,
 ) {
@@ -99,6 +102,7 @@ fn render_mesh<>(
             (*w0, *w1, *w2),
             (c0, c1, c2),
             lights,
+            ambient,
             Some(texture),
             material,
         );

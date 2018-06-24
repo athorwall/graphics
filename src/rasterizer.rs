@@ -47,11 +47,13 @@ impl Rasterizer {
         };
     }
 
+    // TODO: consolidate most of these fields...
     pub fn triangle(
         &mut self,
         world_vertices: (Vertex3, Vertex3, Vertex3),
         clip_vertices: (Vertex4, Vertex4, Vertex4),
         lights: &Vec<Light>,
+        ambient: &FloatColor,
         texture: Option<&Texture>,
         material: &Material,
     ) {
@@ -102,6 +104,7 @@ impl Rasterizer {
                             normal,
                             uvs,
                             lights,
+                            ambient,
                             texture,
                             material,
                         );
@@ -118,6 +121,7 @@ impl Rasterizer {
         world_normals: Vector3<f32>,
         uvs: Vector2<f32>,
         lights: &Vec<Light>,
+        ambient: &FloatColor,
         texture: Option<&Texture>,
         material: &Material,
     ) -> FloatColor {
@@ -127,29 +131,35 @@ impl Rasterizer {
             },
             None => FloatColor::from_rgb(1.0, 1.0, 1.0),
         };
-        let light_color = lights.iter()
+        let color_from_lights = lights.iter()
             .map(|light| {
                 Self::process_fragment_light(
                     world_coordinates,
                     world_normals,
                     light,
-                    material
+                    ambient,
+                    material,
                 )
             })
             .sum();
-        FloatColor::multiply_colors(&texture_color, &light_color)
+        let ambient_color = FloatColor::multiply_colors(ambient, &material.ambient);
+        let total_light_color = ambient_color + color_from_lights;
+
+        FloatColor::multiply_colors(&texture_color, &total_light_color)
     }
 
     fn process_fragment_light(
         world_coordinates: Vector3<f32>,
         world_normals: Vector3<f32>,
         light: &Light,
+        ambient: &FloatColor,
         material: &Material,
     ) -> FloatColor {
         let intensity = match light.light_type {
             LightType::Directional(ref directional_light) => {
                 let normalized_direction = directional_light.direction / directional_light.direction.magnitude();
-                normalized_direction.dot(world_normals)
+                let intensity = normalized_direction.dot(world_normals);
+                if intensity < 0.0 { 0.0 } else { intensity }
             }
             _ => 1.0,
         };

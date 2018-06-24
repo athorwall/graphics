@@ -80,6 +80,10 @@ impl FloatColor {
         colors.iter().zip(weights).map(|(c, w)| *c * *w).sum()
     }
 
+    pub fn multiply_many_colors(colors: &Vec<FloatColor>) -> Self {
+        colors.iter().fold(FloatColor::from_rgb(1.0, 1.0, 1.0), |c1, c2| Self::multiply_colors(&c1, c2))
+    }
+
     pub fn multiply_colors(color1: &FloatColor, color2: &FloatColor) -> Self {
         Self::from_argb(
             color1.a * color2.a,
