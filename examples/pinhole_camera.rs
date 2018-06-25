@@ -52,7 +52,8 @@ fn main() {
         ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
     };
     let lights = vec![
-        Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0})
+        Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0}),
+        Light::point_light(Vector3{x: -1.0, y: 1.0, z: 1.0}),
     ];
     let ambient = FloatColor::from_rgb(0.1, 0.1, 0.1);
 
