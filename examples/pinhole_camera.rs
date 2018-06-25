@@ -26,14 +26,20 @@ fn main() {
     let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
 
     let mut rasterizer = Rasterizer::create(1000, 800);
-    let mut mesh = Mesh::xy_face(3.5).transformed(Matrix4::from_angle_x(Deg(90.0)));
-    let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 0.5, z: 2.0});
+    let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
+    let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
+    //let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
+    let camera = Matrix4::look_at(
+        Point3{x: 0.0, y: 1.0, z: 2.0},
+        Point3{x: 0.0, y: 0.0, z: 0.0},
+        Vector3{x: 0.0, y: 1.0, z: 0.0},
+    ).invert().unwrap();
     let perspective = Matrix4::from(perspective(Deg(90.0), 1000.0 / 800.0, 0.1, 100.0));
     let transformation = perspective * camera.invert().unwrap();
 
-    let mut texture_frame = Frame::new(64, 64, Color::RGB(255, 255, 255));
-    for x in 0..64 {
-        for y in 0..64 {
+    let mut texture_frame = Frame::new(128, 128, Color::RGB(255, 255, 255));
+    for x in 0..128 {
+        for y in 0..128 {
             if ((x / 8) + (y / 8)) % 2 == 0 {
                 texture_frame.set(x, y, Color::RGB(0, 0, 255));
             }
@@ -46,7 +52,7 @@ fn main() {
         ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
     };
     let lights = vec![
-        Light::directional_light(Vector3{x: -1.0, y: -1.0, z: 1.0})
+        Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0})
     ];
     let ambient = FloatColor::from_rgb(0.1, 0.1, 0.1);
 
@@ -60,12 +66,22 @@ fn main() {
             &transformation,
             &lights,
             &ambient,
-            &texture,
+            Some(&texture),
+            &material,
+        );
+        render_mesh(
+            &mesh2,
+            &mut rasterizer,
+            &transformation,
+            &lights,
+            &ambient,
+            None,
             &material,
         );
         timers.stop("render");
 
-        //mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
+        mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
+        mesh2.transform(Matrix4::from_angle_y(Deg(0.3)));
 
         timers.start("canvas");
         render_to_canvas(&mut canvas, rasterizer.get_color_buffer());
@@ -88,25 +104,25 @@ fn render_mesh<>(
     world_to_clip_space: &Matrix4<f32>,
     lights: &Vec<Light>,
     ambient: &FloatColor,
-    texture: &Texture,
+    texture: Option<&Texture>,
     material: &Material,
 ) {
     for (w0, w1, w2) in &mesh.vertices {
-        let c0 = process_vertex(&w0, world_to_clip_space, lights);
-        let c1 = process_vertex(&w1, world_to_clip_space, lights);
-        let c2 = process_vertex(&w2, world_to_clip_space, lights);
+        let c0 = process_vertex(&w0, world_to_clip_space);
+        let c1 = process_vertex(&w1, world_to_clip_space);
+        let c2 = process_vertex(&w2, world_to_clip_space);
         rasterizer.triangle(
             (*w0, *w1, *w2),
             (c0, c1, c2),
             lights,
             ambient,
-            Some(texture),
+            texture,
             material,
         );
     }
 }
 
-fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>, lights: &Vec<Light>) -> Vertex4 {
+fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>) -> Vertex4 {
     let transformed_vertex =  Vertex4{
         position: world_to_clip_space * vertex.to_vertex4(1.0).position,
         uv: vertex.uv,

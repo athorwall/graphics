@@ -2,13 +2,10 @@ use frame::Frame;
 use sdl2;
 use sdl2::*;
 use sdl2::{
-    event::Event,
     pixels::Color,
-    rect::Point,
     render::Canvas,
     video::Window,
 };
-use timing::*;
 
 pub fn create_sdl_canvas(ctx: &Sdl, screen_width: u32, screen_height: u32) -> Canvas<Window> {
     let video_ctx = ctx.video().unwrap();
@@ -24,7 +21,7 @@ pub fn create_sdl_canvas(ctx: &Sdl, screen_width: u32, screen_height: u32) -> Ca
         Err(err)   => panic!("failed to create window: {}", err)
     };
 
-    let mut canvas = match window.into_canvas().build() {
+    let canvas = match window.into_canvas().build() {
         Ok(canvas) => canvas,
         Err(err)   => panic!("failed to create renderer: {}", err)
     };

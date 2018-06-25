@@ -1,6 +1,5 @@
 use sdl2::pixels::Color;
 use std::ops::*;
-use cgmath::*;
 use std::iter::Sum;
 
 #[derive(Copy, Clone, Debug)]

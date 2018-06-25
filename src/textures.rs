@@ -41,12 +41,11 @@ impl Texture {
     }
 
     fn sample_safely(&self, x: i32, y: i32) -> Color {
-        let mut sx = Self::constrain(x, 0, self.buffer.width() as i32 - 1);
-        let mut sy = Self::constrain(y, 0, self.buffer.height() as i32 - 1);
+        let sx = Self::constrain(x, 0, self.buffer.width() as i32 - 1);
+        let sy = Self::constrain(y, 0, self.buffer.height() as i32 - 1);
         return self.buffer.at(sx as usize, sy as usize).unwrap();
     }
 
-    // make generic
     fn constrain<T>(x: T, lower: T, upper: T) -> T where T: BaseNum {
         if x > upper {
             upper

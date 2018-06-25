@@ -2,15 +2,11 @@ use num_traits::Float;
 use num_traits::Num;
 use num_traits::AsPrimitive;
 use cgmath::{
-    Vector2,
-    Vector3,
-    Point2,
-    BaseNum,
     BaseFloat,
-    Zero,
-    InnerSpace,
+    BaseNum,
+    Point2,
+    Vector2,
 };
-use std::ops::Add;
 use std;
 use sdl2::pixels::Color;
 use std::cmp::max;

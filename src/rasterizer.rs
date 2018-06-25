@@ -1,18 +1,11 @@
 use frame::Frame;
-use sdl2;
-use sdl2::*;
 use sdl2::{
-    event::Event,
     pixels::Color,
-    rect::Point,
-    render::Canvas,
-    video::Window,
 };
 use cgmath::*;
 use math::*;
 use num_traits::Float;
 use geometry::*;
-use std::borrow::*;
 use std;
 use textures::*;
 use colors::*;
@@ -61,7 +54,7 @@ impl Rasterizer {
         // Return if triangle is facing away from camera.
         let edge1 = (clip_vertices.1.position - clip_vertices.0.position).truncate();
         let edge2 = (clip_vertices.2.position - clip_vertices.0.position).truncate();
-        if edge1.cross(edge2).dot(Vector3{x: 0.0, y: 0.0, z: -1.0}) < 0.0 {
+        if edge1.cross(edge2).dot(Vector3{x: 0.0, y: 0.0, z: 1.0}) < 0.0 {
             return;
         }
 
@@ -88,13 +81,13 @@ impl Rasterizer {
                     right: (self.screen_width - 1) as i32,
                     top: (self.screen_height - 1) as i32,
                 });
-        for y in bounds.bottom..bounds.top {
+        for y in bounds.bottom..bounds.top + 1 {
             let optional_bounds = projected_triangle.bounds_at_height(y as f32);
             match optional_bounds {
                 Some(line_bounds) => {
                     let x_start = std::cmp::max(line_bounds.0 as i32, 0);
                     let x_end = std::cmp::min(line_bounds.1 as i32, (self.screen_width - 1) as i32);
-                    for x in x_start..x_end {
+                    for x in x_start..x_end + 1 {
                         let point = Point2{x: x as f32, y: y as f32};
                         let bary = projected_triangle.barycentric_coordinates(point);
                         let adjusted_bary = (
@@ -114,8 +107,11 @@ impl Rasterizer {
                             let uvs = clip_vertices.0.uv * w0
                                 + clip_vertices.1.uv * w1
                                 + clip_vertices.2.uv * w2;
+                            let world = (world_vertices.0.position * w0)
+                                + (world_vertices.1.position * w1)
+                                + (world_vertices.2.position * w2);
                             let color = Self::process_fragment(
-                                &Vector3{x: 0.0, y: 0.0, z: 0.0},
+                                &world,
                                 &normal,
                                 &uvs,
                                 lights,
@@ -144,7 +140,7 @@ impl Rasterizer {
     ) -> FloatColor {
         let texture_color = match texture {
             Some(ref t) => {
-                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::NearestNeighbor))
+                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::Bilinear))
             },
             None => FloatColor::from_rgb(1.0, 1.0, 1.0),
         };
@@ -154,7 +150,6 @@ impl Rasterizer {
                     &world_coordinates,
                     &world_normals,
                     light,
-                    ambient,
                     material,
                 )
             })
@@ -170,7 +165,6 @@ impl Rasterizer {
         world_coordinates: &Vector3<f32>,
         world_normals: &Vector3<f32>,
         light: &Light,
-        ambient: &FloatColor,
         material: &Material,
     ) -> FloatColor {
         let intensity = match light.light_type {
@@ -178,12 +172,13 @@ impl Rasterizer {
                 let intensity = directional_light.direction.dot(*world_normals);
                 if intensity < 0.0 { 0.0 } else { intensity }
             }
-            /*
             LightType::Point(ref point_light) => {
-                let normalize
+                let ray = point_light.position - world_coordinates;
+                let distance = ray.magnitude();
+                let normalized_ray = ray / distance;
+                let intensity = normalized_ray.dot(*world_normals) / (distance * distance);
+                if intensity < 0.0 { 0.0 } else { intensity }
             }
-            */
-            _ => 1.0,
         };
         FloatColor::multiply_colors(&material.diffuse, &light.color) * intensity
     }
