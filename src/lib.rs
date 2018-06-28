@@ -4,6 +4,7 @@ extern crate num_traits;
 extern crate sdl2;
 extern crate timing;
 
+pub mod camera;
 pub mod colors;
 pub mod frame;
 pub mod geometry;

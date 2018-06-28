@@ -6,6 +6,8 @@ use cgmath::{
     BaseNum,
     Point2,
     Vector2,
+    Vector3,
+    Point3,
 };
 use std;
 use sdl2::pixels::Color;
@@ -14,6 +16,7 @@ use std::cmp::min;
 use collision::Ray;
 use collision::Line;
 use collision::Continuous;
+use collision::Plane;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct RectBounds<T> {
@@ -49,7 +52,13 @@ impl <T: 'static> RectBounds<T> {
         }
     }
 
-    pub fn overlap(&self, bounds: RectBounds<T>) -> RectBounds<T> where T: BaseNum + Ord {
+    pub fn overlap(&self, bounds: RectBounds<T>) -> Option<RectBounds<T>> where T: BaseNum + Ord {
+        if self.right < bounds.left
+            || self.left > bounds.right
+            || self.top < bounds.bottom
+            || self.bottom > bounds.top {
+            return None;
+        }
         let mut overlap = *self;
         if overlap.left < bounds.left {
             overlap.left = min(self.right, bounds.left);
@@ -63,7 +72,7 @@ impl <T: 'static> RectBounds<T> {
         if overlap.top > bounds.top {
             overlap.top = max(self.bottom, bounds.top);
         }
-        overlap
+        Some(overlap)
     }
 
     pub fn bounds_of_triangle(triangle: Triangle<T>) -> RectBounds<T> where T: BaseNum {
@@ -191,7 +200,50 @@ pub fn barycentric_coordinates<T: Float + Copy>(point: Point2<T>, triangle: Tria
 }
 */
 
+// vertices are kept if they're on the side of the plane indicated by the normal vector
+pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> where T: BaseFloat {
+    let mut new_points: Vec<Point3<T>> = vec![];
+    let mut above = point_above_plane(&points[points.len() - 1], plane);
+    for (i, point) in points.iter().enumerate() {
+        let prev_point = match i {
+            0 => points[points.len() - 1],
+            _ => points[i - 1],
+        };
+        println!("point: {:?}", point);
+        println!("prev_point: {:?}", prev_point);
+        if point_above_plane(point, plane) {
+            println!("point above plane!");
+            if above == false {
+                // crossed back over!
+                let ray = Ray::new(prev_point, *point - prev_point);
+                let intersection = plane.intersection(&ray).unwrap();
+                println!("previously was not above plane, intersection at {:?}", intersection);
+                new_points.push(intersection);
+                new_points.push(*point);
+            } else {
+                // we were above, and still are!
+                new_points.push(*point);
+            }
+            above = true;
+        } else {
+            if above == true {
+                // crossed below! add our intersection point and continue
+                let ray = Ray::new(prev_point, *point - prev_point);
+                let intersection = plane.intersection(&ray).unwrap();
+                new_points.push(intersection);
+            } else {
+                // still below! do nothing at all!
+            }
+            above = false;
+        }
+    }
+    new_points
+}
 
+// TODO: bug in collision library
+pub fn point_above_plane<T>(point: &Point3<T>, plane: &Plane<T>) -> bool where T: BaseFloat {
+    point.x * plane.n.x + point.y * plane.n.y + point.z * plane.n.z + plane.d > T::zero()
+}
 
 #[cfg(test)]
 mod tests {
@@ -260,6 +312,86 @@ mod tests {
             p1: Point2{x: 0.0, y: 1.0},
             p2: Point2{x: 1.0, y: 0.0},
         }.barycentric_coordinates(Point2{x: 0.5, y: 0.0}), (0.5, 0.0, 0.5));
+    }
+
+    #[test]
+    fn test_clip_with_no_clipping() {
+        let triangle = vec![
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+        ];
+        let clipped_triangle = vec![
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+        ];
+        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1.0);
+        assert_eq!(clip(&triangle, &plane), clipped_triangle);
+    }
+
+    #[test]
+    fn test_clip_with_all_clipping() {
+        let triangle = vec![
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+        ];
+        let clipped_triangle = vec![];
+        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, -2.0);
+        assert_eq!(clip(&triangle, &plane), clipped_triangle);
+    }
+
+    #[test]
+    fn test_clip() {
+        let triangle = vec![
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+        ];
+        let clipped_triangle = vec![
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: 0.0, y: 0.0, z: 1.0},
+        ];
+        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 0.0);
+        assert_eq!(clip(&triangle, &plane), clipped_triangle);
+    }
+
+    #[test]
+    fn test_clip_again() {
+        let triangle = vec![
+            Point3{x: -2.0, y: 0.0, z: -2.0},
+            Point3{x: 1.0, y: 0.0, z: -2.0},
+            Point3{x: 1.0, y: 0.0, z: -1.0},
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+            Point3{x: 1.0, y: 0.0, z: 1.0},
+            Point3{x: 1.0, y: 0.0, z: 2.0},
+            Point3{x: -2.0, y: 0.0, z: 2.0},
+        ];
+        let clipped_triangle = vec![
+            Point3{x: -2.0, y: 0.0, z: -2.0},
+            Point3{x: 0.0, y: 0.0, z: -2.0},
+            Point3{x: 0.0, y: 0.0, z: -1.0},
+            Point3{x: -1.0, y: 0.0, z: -1.0},
+            Point3{x: -1.0, y: 0.0, z: 1.0},
+            Point3{x: 0.0, y: 0.0, z: 1.0},
+            Point3{x: 0.0, y: 0.0, z: 2.0},
+            Point3{x: -2.0, y: 0.0, z: 2.0},
+        ];
+        let plane = Plane::new(Vector3{x: -1.0, y: 0.0, z: 0.0}, 0.0);
+        assert_eq!(clip(&triangle, &plane), clipped_triangle);
+    }
+
+    #[test]
+    fn repro() {
+        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 5.0);
+        let ray = Ray::new(
+            Point3{x: -10.0, y: 0.0, z: 0.0},
+            Vector3{x: 1.0, y: 0.0, z: 0.0},
+        );
+        println!("Intersection: {:?}", plane.intersection(&ray));
     }
 }
 

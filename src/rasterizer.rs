@@ -73,7 +73,7 @@ impl Rasterizer {
                 y: ((1.0 - clip_vertices.2.position.y) / 2.0) * self.color_buffer.height() as f32,
             },
         };
-        let bounds =
+        let optional_bounds =
             RectBounds::<i32>::from(RectBounds::bounds_of_triangle(projected_triangle))
                 .overlap(RectBounds{
                     left: 0,
@@ -81,6 +81,8 @@ impl Rasterizer {
                     right: (self.screen_width - 1) as i32,
                     top: (self.screen_height - 1) as i32,
                 });
+        // ugh because I don't want to match and indent
+        let bounds = optional_bounds.unwrap_or(RectBounds{top: 0, bottom: 0, left: 0, right: 0});
         for y in bounds.bottom..bounds.top + 1 {
             let optional_bounds = projected_triangle.bounds_at_height(y as f32);
             match optional_bounds {
@@ -90,6 +92,7 @@ impl Rasterizer {
                     for x in x_start..x_end + 1 {
                         let point = Point2{x: x as f32, y: y as f32};
                         let bary = projected_triangle.barycentric_coordinates(point);
+                        // should maybe be -w?
                         let adjusted_bary = (
                             bary.0 / clip_vertices.0.position.w,
                             bary.1 / clip_vertices.1.position.w,
@@ -97,6 +100,9 @@ impl Rasterizer {
                         );
                         let inv_z = adjusted_bary.0 + adjusted_bary.1 + adjusted_bary.2;
                         let z = 1.0 / inv_z;
+                        if z <= 0.0 {
+                            continue;
+                        }
                         if z < self.z_buffer.at(x as usize, y as usize).unwrap() {
                             let w0 = z * adjusted_bary.0;
                             let w1 = z * adjusted_bary.1;
