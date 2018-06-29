@@ -202,6 +202,9 @@ pub fn barycentric_coordinates<T: Float + Copy>(point: Point2<T>, triangle: Tria
 
 // vertices are kept if they're on the side of the plane indicated by the normal vector
 pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> where T: BaseFloat {
+    if points.len() == 0 {
+        return vec![];
+    }
     let mut new_points: Vec<Point3<T>> = vec![];
     let mut above = point_above_plane(&points[points.len() - 1], plane);
     for (i, point) in points.iter().enumerate() {
@@ -209,15 +212,11 @@ pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> wher
             0 => points[points.len() - 1],
             _ => points[i - 1],
         };
-        println!("point: {:?}", point);
-        println!("prev_point: {:?}", prev_point);
         if point_above_plane(point, plane) {
-            println!("point above plane!");
             if above == false {
                 // crossed back over!
                 let ray = Ray::new(prev_point, *point - prev_point);
                 let intersection = plane.intersection(&ray).unwrap();
-                println!("previously was not above plane, intersection at {:?}", intersection);
                 new_points.push(intersection);
                 new_points.push(*point);
             } else {
@@ -238,6 +237,42 @@ pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> wher
         }
     }
     new_points
+}
+
+// lots of optimizations to be made here
+pub fn clip_in_box<T>(points: &Vec<Point3<T>>) -> Vec<Point3<T>> where T: BaseFloat {
+    println!("Original points: {:?}", points);
+    let mut clipped_points = clip(
+        points,
+        &Plane::new(Vector3::unit_x(), T::one()),
+    );
+    println!("Clipped with positive YZ: {:?}", clipped_points);
+    clipped_points = clip(
+        &clipped_points,
+        &Plane::new(-Vector3::unit_x(), T::one()),
+    );
+    println!("Clipped with negative YZ: {:?}", clipped_points);
+    clipped_points = clip(
+        &clipped_points,
+        &Plane::new(Vector3::unit_y(), T::one()),
+    );
+    println!("Clipped with positive XZ: {:?}", clipped_points);
+    clipped_points = clip(
+        &clipped_points,
+        &Plane::new(-Vector3::unit_y(), T::one()),
+    );
+    println!("Clipped with negative XZ: {:?}", clipped_points);
+    clipped_points = clip(
+        &clipped_points,
+        &Plane::new(Vector3::unit_z(), T::one()),
+    );
+    println!("Clipped with positive XY: {:?}", clipped_points);
+    clipped_points = clip(
+        &clipped_points,
+        &Plane::new(-Vector3::unit_z(), T::one()),
+    );
+    println!("Clipped with negative XY: {:?}", clipped_points);
+    return clipped_points;
 }
 
 // TODO: bug in collision library
@@ -382,6 +417,29 @@ mod tests {
         ];
         let plane = Plane::new(Vector3{x: -1.0, y: 0.0, z: 0.0}, 0.0);
         assert_eq!(clip(&triangle, &plane), clipped_triangle);
+    }
+
+    #[test]
+    fn test_clip_in_box() {
+        assert_eq!(clip_in_box(&vec![
+            Point3{x: 0.5, y: 0.5, z: 0.0},
+            Point3{x: 0.5, y: -0.5, z: 0.0},
+            Point3{x: -0.5, y: 0.0, z: 0.0},
+        ]), vec![
+            Point3{x: 0.5, y: 0.5, z: 0.0},
+            Point3{x: 0.5, y: -0.5, z: 0.0},
+            Point3{x: -0.5, y: 0.0, z: 0.0},
+        ]);
+        assert_eq!(clip_in_box(&vec![
+            Point3{x: 3.0, y: 3.0, z: 0.0},
+            Point3{x: 3.0, y: -3.0, z: 0.0},
+            Point3{x: -3.0, y: 0.0, z: 0.0},
+        ]), vec![
+            Point3{x: -1.0, y: -1.0, z: 0.0},
+            Point3{x: -1.0, y: 1.0, z: 0.0},
+            Point3{x: 1.0, y: 1.0, z: 0.0},
+            Point3{x: 1.0, y: -1.0, z: 0.0},
+        ]);
     }
 
     #[test]
