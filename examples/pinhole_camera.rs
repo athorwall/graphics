@@ -57,7 +57,6 @@ fn main() {
 
         timers.start("render");
         let camera = Matrix4::from_translation(camera_pos);
-        println!("Camera matrix: {:?}", camera);
         let perspective = Matrix4::from(perspective(Deg(90.0), 1000.0 / 800.0, 0.1, 100.0));
         let transformation = perspective * camera.invert().unwrap();
         render_mesh(

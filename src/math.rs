@@ -152,8 +152,8 @@ impl <T> Triangle<T> {
     }
 
     pub fn area(&self) -> T where T: BaseFloat {
-        return (self.p1.x - self.p0.x) * (self.p2.y - self.p0.y)
-            - (self.p1.y - self.p0.y) * (self.p2.x - self.p0.x);
+        return (((self.p1.x - self.p0.x) * (self.p2.y - self.p0.y)
+            - (self.p1.y - self.p0.y) * (self.p2.x - self.p0.x)) / (T::one() + T::one())).abs();
     }
 
     pub fn barycentric_coordinates(&self, point: Point2<T>) -> (T, T, T) where T: BaseFloat {
@@ -241,38 +241,43 @@ pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> wher
 
 // lots of optimizations to be made here
 pub fn clip_in_box<T>(points: &Vec<Point3<T>>) -> Vec<Point3<T>> where T: BaseFloat {
-    println!("Original points: {:?}", points);
     let mut clipped_points = clip(
         points,
         &Plane::new(Vector3::unit_x(), T::one()),
     );
-    println!("Clipped with positive YZ: {:?}", clipped_points);
     clipped_points = clip(
         &clipped_points,
         &Plane::new(-Vector3::unit_x(), T::one()),
     );
-    println!("Clipped with negative YZ: {:?}", clipped_points);
     clipped_points = clip(
         &clipped_points,
         &Plane::new(Vector3::unit_y(), T::one()),
     );
-    println!("Clipped with positive XZ: {:?}", clipped_points);
     clipped_points = clip(
         &clipped_points,
         &Plane::new(-Vector3::unit_y(), T::one()),
     );
-    println!("Clipped with negative XZ: {:?}", clipped_points);
     clipped_points = clip(
         &clipped_points,
         &Plane::new(Vector3::unit_z(), T::one()),
     );
-    println!("Clipped with positive XY: {:?}", clipped_points);
     clipped_points = clip(
         &clipped_points,
         &Plane::new(-Vector3::unit_z(), T::one()),
     );
-    println!("Clipped with negative XY: {:?}", clipped_points);
     return clipped_points;
+}
+
+pub fn convex_triangulation<T>(points: &Vec<Point3<T>>) -> Vec<(Point3<T>, Point3<T>, Point3<T>)>
+    where T: BaseFloat {
+    if points.len() < 3 {
+        return vec![];
+    }
+    let mut tris = vec![];
+    for i in 2..points.len() {
+        tris.push((points[0], points[i - 1], points[i]));
+    }
+    return tris;
 }
 
 // TODO: bug in collision library
@@ -440,6 +445,33 @@ mod tests {
             Point3{x: 1.0, y: 1.0, z: 0.0},
             Point3{x: 1.0, y: -1.0, z: 0.0},
         ]);
+    }
+
+    #[test]
+    fn test_triangulation() {
+        assert_eq!(convex_triangulation(&vec![
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 0.0, z: 0.0},
+            Point3{x: 0.0, y: 1.0, z: 0.0},
+        ]), vec![(
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 0.0, z: 0.0},
+            Point3{x: 0.0, y: 1.0, z: 0.0},
+        )]);
+        assert_eq!(convex_triangulation(&vec![
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 1.0, z: 0.0},
+            Point3{x: 0.0, y: 1.0, z: 0.0},
+        ]), vec![(
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 1.0, z: 0.0},
+        ), (
+            Point3{x: 0.0, y: 0.0, z: 0.0},
+            Point3{x: 1.0, y: 1.0, z: 0.0},
+            Point3{x: 0.0, y: 1.0, z: 0.0},
+        )]);
     }
 
     #[test]
