@@ -23,9 +23,9 @@ fn main() {
     let ctx = sdl2::init().unwrap();
     let mut events = ctx.event_pump().unwrap();
     let mut timers = Timers::new();
-    let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
+    let mut canvas = create_sdl_canvas(&ctx, 400, 300);
 
-    let mut rasterizer = Rasterizer::create(1000, 800);
+    let mut rasterizer = Rasterizer::create(400, 300);
     let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
     let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
     //let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
@@ -50,7 +50,7 @@ fn main() {
     ];
     let ambient = FloatColor::from_rgb(0.1, 0.1, 0.1);
 
-    let mut camera_pos = Vector3{x: 0.0, y: 1.0, z: 0.0};
+    let mut camera_pos = Vector3{x: 0.0, y: 1.0, z: 2.0};
 
     'main: loop {
         rasterizer.clear();
@@ -62,7 +62,8 @@ fn main() {
         render_mesh(
             &mesh,
             &mut rasterizer,
-            &transformation,
+            &camera.invert().unwrap(),
+            &perspective,
             &lights,
             &ambient,
             Some(&texture),
@@ -71,7 +72,8 @@ fn main() {
         render_mesh(
             &mesh2,
             &mut rasterizer,
-            &transformation,
+            &camera.invert().unwrap(),
+            &perspective,
             &lights,
             &ambient,
             None,
@@ -109,50 +111,36 @@ fn main() {
     println!("{}", timers);
 }
 
+// todo: perform lighting calculations in camera space
 fn render_mesh<>(
     mesh: &Mesh,
     rasterizer: & mut Rasterizer,
-    world_to_clip_space: &Matrix4<f32>,
+    world_to_camera_space: &Matrix4<f32>,
+    camera_to_clip_space: &Matrix4<f32>,
     lights: &Vec<Light>,
     ambient: &FloatColor,
     texture: Option<&Texture>,
     material: &Material,
 ) {
     for (w0, w1, w2) in &mesh.vertices {
-        let c0 = process_vertex(&w0, world_to_clip_space);
-        let c1 = process_vertex(&w1, world_to_clip_space);
-        let c2 = process_vertex(&w2, world_to_clip_space);
-        match (c0, c1, c2) {
-            (Some(c0), Some(c1), Some(c2)) => {
-                rasterizer.triangle(
-                    (*w0, *w1, *w2),
-                    (c0, c1, c2),
-                    lights,
-                    ambient,
-                    texture,
-                    material,
-                );
-            }
-            _ => {}
-        }
-    }
-}
-
-// HACK we don't have proper clipping so ignore any vertex that's not visible
-fn process_vertex(vertex: &Vertex3, world_to_clip_space: &Matrix4<f32>) -> Option<Vertex4> {
-    let transformed_vertex =  Vertex4{
-        position: world_to_clip_space * vertex.to_vertex4(1.0).position,
-        uv: vertex.uv,
-    };
-    if transformed_vertex.position.x <= -transformed_vertex.position.w
-        || transformed_vertex.position.x >= transformed_vertex.position.w
-        || transformed_vertex.position.y <= -transformed_vertex.position.w
-        || transformed_vertex.position.y >= transformed_vertex.position.w
-        || transformed_vertex.position.z <= -transformed_vertex.position.w
-        || transformed_vertex.position.z >= transformed_vertex.position.w {
-        return None;
-    } else {
-        return Some(transformed_vertex.perspective_adjusted());
+        let camera0 = w0.to_vertex4(1.0).transformed(*world_to_camera_space);
+        let camera1 = w1.to_vertex4(1.0).transformed(*world_to_camera_space);
+        let camera2 = w2.to_vertex4(1.0).transformed(*world_to_camera_space);
+        let clip0 = camera0.transformed(*camera_to_clip_space);
+        let clip1 = camera1.transformed(*camera_to_clip_space);
+        let clip2 = camera2.transformed(*camera_to_clip_space);
+        let perspective_adjusted0 = clip0.perspective_adjusted();
+        let perspective_adjusted1 = clip1.perspective_adjusted();
+        let perspective_adjusted2 = clip2.perspective_adjusted();
+        rasterizer.triangle(
+            (*w0, *w1, *w2),
+            (camera0, camera1, camera2),
+            (perspective_adjusted0, perspective_adjusted1, perspective_adjusted2),
+            lights,
+            ambient,
+            texture,
+            material,
+        );
     }
 }
 

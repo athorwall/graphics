@@ -1,4 +1,5 @@
 use cgmath::*;
+use math::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vertex3 {
@@ -64,6 +65,18 @@ impl Vertex4 {
         return adjusted_vertex;
     }
 }
+
+/*
+pub fn clip_triangle(triangle: &(&Vertex4, &Vertex4, &Vertex4)) -> Vec<(Vertex4, Vertex4, Vertex4)> {
+    let mut new_triangle = triangle.clone();
+    let points = vec![
+        triangle.0.position,
+        triangle.1.position,
+        triangle.2.position,
+    ];
+    let clipped_points = clip_in_box(&points);
+}
+*/
 
 #[derive(Clone, Debug)]
 pub struct Mesh {

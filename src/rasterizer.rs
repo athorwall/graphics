@@ -45,6 +45,7 @@ impl Rasterizer {
     pub fn triangle(
         &mut self,
         world_vertices: (Vertex3, Vertex3, Vertex3),
+        camera_vertices: (Vertex4, Vertex4, Vertex4),
         clip_vertices: (Vertex4, Vertex4, Vertex4),
         lights: &Vec<Light>,
         ambient: &FloatColor,
@@ -94,9 +95,9 @@ impl Rasterizer {
                         let bary = projected_triangle.barycentric_coordinates(point);
                         // should maybe be -w?
                         let adjusted_bary = (
-                            bary.0 / clip_vertices.0.position.w,
-                            bary.1 / clip_vertices.1.position.w,
-                            bary.2 / clip_vertices.2.position.w,
+                            bary.0 / -camera_vertices.0.position.z,
+                            bary.1 / -camera_vertices.1.position.z,
+                            bary.2 / -camera_vertices.2.position.z,
                         );
                         let inv_z = adjusted_bary.0 + adjusted_bary.1 + adjusted_bary.2;
                         let z = 1.0 / inv_z;
