@@ -2,6 +2,7 @@ use num_traits::Float;
 use num_traits::Num;
 use num_traits::AsPrimitive;
 use cgmath::{
+    InnerSpace,
     BaseFloat,
     BaseNum,
     Point2,
@@ -9,6 +10,8 @@ use cgmath::{
     Vector3,
     Vector4,
     Point3,
+    SquareMatrix,
+    Matrix4,
 };
 use std;
 use sdl2::pixels::Color;
@@ -256,10 +259,69 @@ pub fn clip_in_box<T>(points: &Vec<Vector4<T>>) -> Vec<Vector4<T>> where T: Base
     clipped_points
 }
 
-pub fn clip_triangle(v0: Vertex4, v1: Vertex4, v2: Vertex4) -> Vec<(Vertex4, Vertex4, Vertex4)> {
+pub fn from_homogenous<T>(p: Vector4<T>) -> Vector3<T> where T: BaseFloat {
+    Vector3{
+        x: p.x / p.w,
+        y: p.y / p.w,
+        z: p.z / p.w,
+    }
+}
+
+pub fn triangle_area4<T>(
+    p0: Vector4<T>,
+    p1: Vector4<T>,
+    p2: Vector4<T>,
+) -> T where T: BaseFloat {
+    let adjusted_p0 = from_homogenous(p0);
+    let adjusted_p1 = from_homogenous(p1);
+    let adjusted_p2 = from_homogenous(p2);
+    return (adjusted_p1 - adjusted_p0).cross(adjusted_p2 - adjusted_p0).magnitude().abs()
+        / (T::one() + T::one());
+}
+
+pub fn barycentric_coordinates4<T>(
+    (t0, t1, t2): (Vector4<T>, Vector4<T>, Vector4<T>),
+    point: Vector4<T>,
+) -> (T, T, T) where T: BaseFloat {
+    let area = triangle_area4(t0, t1, t2);
+    let p0_coordinate = triangle_area4(point, t1, t2) / area;
+    let p1_coordinate = triangle_area4(point, t2, t0) / area;
+    let p2_coordinate = T::one() - p1_coordinate - p0_coordinate;
+    return (p0_coordinate, p1_coordinate, p2_coordinate);
+}
+
+pub fn interpolate_vertex4(
+    (v0, v1, v2): (Vertex4, Vertex4, Vertex4),
+    v: Vector4<f32>,
+) -> Vertex4 {
+    let (b0, b1, b2) = barycentric_coordinates4(
+        (v0.position, v1.position, v2.position),
+        v,
+    );
+    Vertex4{
+        position: v,
+        uv: v0.uv * b0 + v1.uv * b1  + v2.uv * b2,
+        normal: v0.normal * b0 + v1.normal * b1 + v2.normal * b2,
+    }
+}
+
+pub fn clip_triangle(
+    v0: Vertex4,
+    v1: Vertex4,
+    v2: Vertex4,
+    // For proper vertex attribute interpolation. There's probably a better way to do this.
+    clip_to_camera_matrix: Matrix4<f32>,
+) -> Vec<(Vertex4, Vertex4, Vertex4)> {
     let points = clip_in_box(&vec![v0.position, v1.position, v2.position]);
+    let w0 = v0.transformed(clip_to_camera_matrix);
+    let w1 = v1.transformed(clip_to_camera_matrix);
+    let w2 = v2.transformed(clip_to_camera_matrix);
     let vertices = points.iter()
-        .map(|v| Vertex4{position: *v, uv: v0.uv, normal: v0.normal})
+        .map(|v| {
+            let w = clip_to_camera_matrix * v;
+            interpolate_vertex4((w0, w1, w2), w)
+                .transformed(clip_to_camera_matrix.invert().unwrap())
+        })
         .collect();
     let triangles = convex_triangulation(&vertices);
     triangles
@@ -379,7 +441,6 @@ mod tests {
             Point3{x: -10.0, y: 0.0, z: 0.0},
             Vector3{x: 1.0, y: 0.0, z: 0.0},
         );
-        println!("Intersection: {:?}", plane.intersection(&ray));
     }
 
     #[test]

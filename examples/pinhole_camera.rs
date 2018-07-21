@@ -50,14 +50,13 @@ fn main() {
     ];
     let ambient = FloatColor::from_rgb(0.3, 0.3, 0.3);
 
-    let mut camera_pos = Vector3{x: 0.0, y: 1.0, z: 2.0};
+    let mut camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
 
     'main: loop {
         rasterizer.clear();
 
         timers.start("render");
-        let camera = Matrix4::from_translation(camera_pos);
-        let perspective = Matrix4::from(perspective(Deg(90.0), 1000.0 / 800.0, 0.1, 100.0));
+        let perspective = Matrix4::from(perspective(Deg(70.0), 1000.0 / 800.0, 0.1, 100.0));
         render_mesh(
             &mesh,
             &mut rasterizer,
@@ -65,7 +64,7 @@ fn main() {
             &perspective,
             &lights,
             &ambient,
-            None,
+            Some(&texture),
             &material,
         );
         render_mesh(
@@ -91,10 +90,16 @@ fn main() {
             events.pump_events();
             let keyboard_state = events.keyboard_state();
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Up) {
-                camera_pos += Vector3{x: 0.0, y: 0.0, z: -0.02};
+                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: -0.02});
             }
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Down) {
-                camera_pos += Vector3{x: 0.0, y: 0.0, z: 0.02};
+                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: 0.02});
+            }
+            if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Left) {
+                camera = camera * Matrix4::from_angle_y(cgmath::Rad(0.01));
+            }
+            if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Right) {
+                camera = camera * Matrix4::from_angle_y(cgmath::Rad(-0.01));
             }
         }
 
@@ -121,15 +126,17 @@ fn render_mesh(
     texture: Option<&Texture>,
     material: &Material,
 ) {
+    let world_to_clip_space = *camera_to_clip_space * *world_to_camera_space;
     for (w0, w1, w2) in &mesh.vertices {
-        let camera0 = w0.to_vertex4(1.0).transformed(*world_to_camera_space);
-        let camera1 = w1.to_vertex4(1.0).transformed(*world_to_camera_space);
-        let camera2 = w2.to_vertex4(1.0).transformed(*world_to_camera_space);
-        let clip0 = camera0.transformed(*camera_to_clip_space);
-        let clip1 = camera1.transformed(*camera_to_clip_space);
-        let clip2 = camera2.transformed(*camera_to_clip_space);
-        let tris = clip_triangle(clip0, clip1, clip2);
-
+        let clip0 = w0.to_vertex4(1.0).transformed(world_to_clip_space);
+        let clip1 = w1.to_vertex4(1.0).transformed(world_to_clip_space);
+        let clip2 = w2.to_vertex4(1.0).transformed(world_to_clip_space);
+        let tris = clip_triangle(
+            clip0,
+            clip1,
+            clip2,
+            camera_to_clip_space.invert().unwrap(),
+        );
         for tri in tris {
             render_triangle(
                 tri,
@@ -142,21 +149,10 @@ fn render_mesh(
                 material,
             );
         }
-
-        /*
-        render_triangle(
-            (clip0, clip1, clip2),
-            rasterizer,
-            world_to_camera_space,
-            camera_to_clip_space,
-            lights,
-            ambient,
-            texture,
-            material,
-        );*/
     }
 }
 
+// Improvements: shouldn't have to compute inverses every time
 fn render_triangle(
     clip_triangle: (Vertex4, Vertex4, Vertex4),
     rasterizer: & mut Rasterizer,
