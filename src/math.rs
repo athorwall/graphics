@@ -207,22 +207,21 @@ pub fn homogenous_intersection<T>(p0: Vector4<T>, p1: Vector4<T>, plane: &Fn(Vec
 }
 
 // vertices are kept if they're on the side of the plane indicated by the normal vector
-pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> where T: BaseFloat {
+pub fn clip<T>(points: &Vec<Vector4<T>>, plane: &Fn(Vector4<T>) -> T) -> Vec<Vector4<T>> where T: BaseFloat {
     if points.len() == 0 {
         return vec![];
     }
-    let mut new_points: Vec<Point3<T>> = vec![];
-    let mut above = point_above_plane(&points[points.len() - 1], plane);
+    let mut new_points: Vec<Vector4<T>> = vec![];
+    let mut above = points[points.len() - 1].w + plane(points[points.len() - 1]) >= T::zero();
     for (i, point) in points.iter().enumerate() {
         let prev_point = match i {
             0 => points[points.len() - 1],
             _ => points[i - 1],
         };
-        if point_above_plane(point, plane) {
+        if (*point).w + plane(*point) >= T::zero() {
             if above == false {
                 // crossed back over!
-                let ray = Ray::new(prev_point, *point - prev_point);
-                let intersection = plane.intersection(&ray).unwrap();
+                let intersection = homogenous_intersection(prev_point, *point, plane).unwrap();
                 new_points.push(intersection);
                 new_points.push(*point);
             } else {
@@ -233,8 +232,7 @@ pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> wher
         } else {
             if above == true {
                 // crossed below! add our intersection point and continue
-                let ray = Ray::new(prev_point, *point - prev_point);
-                let intersection = plane.intersection(&ray).unwrap();
+                let intersection = homogenous_intersection(prev_point, *point, plane).unwrap();
                 new_points.push(intersection);
             } else {
                 // still below! do nothing at all!
@@ -246,35 +244,17 @@ pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> wher
 }
 
 // lots of optimizations to be made here
-pub fn clip_in_box<T>(points: &Vec<Point3<T>>) -> Vec<Point3<T>> where T: BaseFloat {
-    let mut clipped_points = clip(
-        points,
-        &Plane::new(Vector3::unit_x(), T::one()),
-    );
-    clipped_points = clip(
-        &clipped_points,
-        &Plane::new(-Vector3::unit_x(), T::one()),
-    );
-    clipped_points = clip(
-        &clipped_points,
-        &Plane::new(Vector3::unit_y(), T::one()),
-    );
-    clipped_points = clip(
-        &clipped_points,
-        &Plane::new(-Vector3::unit_y(), T::one()),
-    );
-    clipped_points = clip(
-        &clipped_points,
-        &Plane::new(Vector3::unit_z(), T::one()),
-    );
-    clipped_points = clip(
-        &clipped_points,
-        &Plane::new(-Vector3::unit_z(), T::one()),
-    );
-    return clipped_points;
+pub fn clip_in_box<T>(points: &Vec<Vector4<T>>) -> Vec<Vector4<T>> where T: BaseFloat {
+    let mut clipped_points = clip(points, &|p: Vector4<T>| p.x);
+    clipped_points = clip(&clipped_points, &|p: Vector4<T>| -p.x);
+    clipped_points = clip(&clipped_points, &|p: Vector4<T>| p.y);
+    clipped_points = clip(&clipped_points, &|p: Vector4<T>| -p.y);
+    clipped_points = clip(&clipped_points, &|p: Vector4<T>| p.z);
+    clipped_points = clip(&clipped_points, &|p: Vector4<T>| -p.z);
+    clipped_points
 }
 
-pub fn convex_triangulation<T>(points: &Vec<Point3<T>>) -> Vec<(Point3<T>, Point3<T>, Point3<T>)>
+pub fn convex_triangulation<T>(points: &Vec<Vector4<T>>) -> Vec<(Vector4<T>, Vector4<T>, Vector4<T>)>
     where T: BaseFloat {
     if points.len() < 3 {
         return vec![];
@@ -284,11 +264,6 @@ pub fn convex_triangulation<T>(points: &Vec<Point3<T>>) -> Vec<(Point3<T>, Point
         tris.push((points[0], points[i - 1], points[i]));
     }
     return tris;
-}
-
-// TODO: bug in collision library
-pub fn point_above_plane<T>(point: &Point3<T>, plane: &Plane<T>) -> bool where T: BaseFloat {
-    point.x * plane.n.x + point.y * plane.n.y + point.z * plane.n.z + plane.d > T::zero()
 }
 
 #[cfg(test)]
@@ -361,122 +336,29 @@ mod tests {
     }
 
     #[test]
-    fn test_clip_with_no_clipping() {
-        let triangle = vec![
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-        ];
-        let clipped_triangle = vec![
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-        ];
-        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1.0);
-        assert_eq!(clip(&triangle, &plane), clipped_triangle);
-    }
-
-    #[test]
-    fn test_clip_with_all_clipping() {
-        let triangle = vec![
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-        ];
-        let clipped_triangle = vec![];
-        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, -2.0);
-        assert_eq!(clip(&triangle, &plane), clipped_triangle);
-    }
-
-    #[test]
-    fn test_clip() {
-        let triangle = vec![
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-        ];
-        let clipped_triangle = vec![
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: 0.0, y: 0.0, z: 1.0},
-        ];
-        let plane = Plane::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 0.0);
-        assert_eq!(clip(&triangle, &plane), clipped_triangle);
-    }
-
-    #[test]
-    fn test_clip_again() {
-        let triangle = vec![
-            Point3{x: -2.0, y: 0.0, z: -2.0},
-            Point3{x: 1.0, y: 0.0, z: -2.0},
-            Point3{x: 1.0, y: 0.0, z: -1.0},
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-            Point3{x: 1.0, y: 0.0, z: 1.0},
-            Point3{x: 1.0, y: 0.0, z: 2.0},
-            Point3{x: -2.0, y: 0.0, z: 2.0},
-        ];
-        let clipped_triangle = vec![
-            Point3{x: -2.0, y: 0.0, z: -2.0},
-            Point3{x: 0.0, y: 0.0, z: -2.0},
-            Point3{x: 0.0, y: 0.0, z: -1.0},
-            Point3{x: -1.0, y: 0.0, z: -1.0},
-            Point3{x: -1.0, y: 0.0, z: 1.0},
-            Point3{x: 0.0, y: 0.0, z: 1.0},
-            Point3{x: 0.0, y: 0.0, z: 2.0},
-            Point3{x: -2.0, y: 0.0, z: 2.0},
-        ];
-        let plane = Plane::new(Vector3{x: -1.0, y: 0.0, z: 0.0}, 0.0);
-        assert_eq!(clip(&triangle, &plane), clipped_triangle);
-    }
-
-    #[test]
-    fn test_clip_in_box() {
-        assert_eq!(clip_in_box(&vec![
-            Point3{x: 0.5, y: 0.5, z: 0.0},
-            Point3{x: 0.5, y: -0.5, z: 0.0},
-            Point3{x: -0.5, y: 0.0, z: 0.0},
-        ]), vec![
-            Point3{x: 0.5, y: 0.5, z: 0.0},
-            Point3{x: 0.5, y: -0.5, z: 0.0},
-            Point3{x: -0.5, y: 0.0, z: 0.0},
-        ]);
-        assert_eq!(clip_in_box(&vec![
-            Point3{x: 3.0, y: 3.0, z: 0.0},
-            Point3{x: 3.0, y: -3.0, z: 0.0},
-            Point3{x: -3.0, y: 0.0, z: 0.0},
-        ]), vec![
-            Point3{x: -1.0, y: -1.0, z: 0.0},
-            Point3{x: -1.0, y: 1.0, z: 0.0},
-            Point3{x: 1.0, y: 1.0, z: 0.0},
-            Point3{x: 1.0, y: -1.0, z: 0.0},
-        ]);
-    }
-
-    #[test]
     fn test_triangulation() {
         assert_eq!(convex_triangulation(&vec![
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 0.0, z: 0.0},
-            Point3{x: 0.0, y: 1.0, z: 0.0},
+            Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 0.0, y: 1.0, z: 0.0, w: 1.0},
         ]), vec![(
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 0.0, z: 0.0},
-            Point3{x: 0.0, y: 1.0, z: 0.0},
+            Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 0.0, y: 1.0, z: 0.0, w: 1.0},
         )]);
         assert_eq!(convex_triangulation(&vec![
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 1.0, z: 0.0},
-            Point3{x: 0.0, y: 1.0, z: 0.0},
+            Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 1.0, z: 0.0, w: 1.0},
+            Vector4{x: 0.0, y: 1.0, z: 0.0, w: 1.0},
         ]), vec![(
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 1.0, z: 0.0},
+            Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 1.0, z: 0.0, w: 1.0},
         ), (
-            Point3{x: 0.0, y: 0.0, z: 0.0},
-            Point3{x: 1.0, y: 1.0, z: 0.0},
-            Point3{x: 0.0, y: 1.0, z: 0.0},
+            Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+            Vector4{x: 1.0, y: 1.0, z: 0.0, w: 1.0},
+            Vector4{x: 0.0, y: 1.0, z: 0.0, w: 1.0},
         )]);
     }
 
@@ -499,6 +381,55 @@ mod tests {
                 &|p: Vector4<f32>| -p.x,
             ),
             Some(Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0}),
+        );
+    }
+
+    #[test]
+    fn test_clip() {
+        assert_eq!(
+            clip(&vec![
+                Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.0, y: 2.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.0, y: 2.0, z: 0.0, w: 1.0},
+            ], &|p: Vector4<f32>| -p.x),
+            vec![
+                Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 1.0, y: 2.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.0, y: 2.0, z: 0.0, w: 1.0},
+            ],
+        );
+    }
+
+    #[test]
+    fn test_no_clip() {
+        assert_eq!(
+            clip(&vec![
+                Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.5, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.5, y: 2.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.0, y: 2.0, z: 0.0, w: 1.0},
+            ], &|p: Vector4<f32>| -p.x),
+            vec![
+                Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.5, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.5, y: 2.0, z: 0.0, w: 1.0},
+                Vector4{x: 0.0, y: 2.0, z: 0.0, w: 1.0},
+            ],
+        );
+    }
+
+    #[test]
+    fn test_all_clip() {
+        assert_eq!(
+            clip(&vec![
+                Vector4{x: 2.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.5, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.5, y: 2.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.0, y: 2.0, z: 0.0, w: 1.0},
+            ], &|p: Vector4<f32>| -p.x),
+            vec![],
         );
     }
 }
