@@ -39,6 +39,7 @@ impl Vertex3 {
         return Vertex4{
             position: self.position.extend(w),
             uv: self.uv,
+            normal: self.normal.extend(1.0),
         }
     }
 }
@@ -47,13 +48,17 @@ impl Vertex3 {
 pub struct Vertex4 {
     pub position: Vector4<f32>,
     pub uv: Vector2<f32>,
+    // could be Vector3 but makes clipping easier this way
+    pub normal: Vector4<f32>,
 }
 
 impl Vertex4 {
     pub fn transformed(&self, transformation: Matrix4<f32>) -> Self {
+        let normal_matrix = transformation.invert().unwrap().transpose();
         return Vertex4 {
             position: transformation * self.position,
             uv: self.uv,
+            normal: normal_matrix * self.normal,
         };
     }
 

@@ -44,7 +44,7 @@ impl Rasterizer {
     // TODO: consolidate most of these fields...
     pub fn triangle(
         &mut self,
-        world_vertices: (Vertex3, Vertex3, Vertex3),
+        world_vertices: (Vertex4, Vertex4, Vertex4),
         camera_vertices: (Vertex4, Vertex4, Vertex4),
         clip_vertices: (Vertex4, Vertex4, Vertex4),
         lights: &Vec<Light>,
@@ -137,8 +137,8 @@ impl Rasterizer {
     }
 
     fn process_fragment(
-        world_coordinates: &Vector3<f32>,
-        world_normals: &Vector3<f32>,
+        world_coordinates: &Vector4<f32>,
+        world_normals: &Vector4<f32>,
         uvs: &Vector2<f32>,
         lights: &Vec<Light>,
         ambient: &FloatColor,
@@ -169,21 +169,21 @@ impl Rasterizer {
     }
 
     fn process_fragment_light(
-        world_coordinates: &Vector3<f32>,
-        world_normals: &Vector3<f32>,
+        world_coordinates: &Vector4<f32>,
+        world_normals: &Vector4<f32>,
         light: &Light,
         material: &Material,
     ) -> FloatColor {
         let intensity = match light.light_type {
             LightType::Directional(ref directional_light) => {
-                let intensity = directional_light.direction.dot(*world_normals);
+                let intensity = directional_light.direction.dot(world_normals.truncate());
                 if intensity < 0.0 { 0.0 } else { intensity }
             }
             LightType::Point(ref point_light) => {
-                let ray = point_light.position - world_coordinates;
+                let ray = point_light.position - world_coordinates.truncate();
                 let distance = ray.magnitude();
                 let normalized_ray = ray / distance;
-                let intensity = normalized_ray.dot(*world_normals) / (distance * distance);
+                let intensity = normalized_ray.dot(world_normals.truncate()) / (distance * distance);
                 if intensity < 0.0 { 0.0 } else { intensity }
             }
         };

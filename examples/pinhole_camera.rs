@@ -18,6 +18,7 @@ use graphics::textures::*;
 use graphics::light::*;
 use graphics::colors::*;
 use graphics::materials::*;
+use graphics::math::*;
 
 fn main() {
     let ctx = sdl2::init().unwrap();
@@ -110,7 +111,7 @@ fn main() {
 }
 
 // todo: perform lighting calculations in camera space
-fn render_mesh<>(
+fn render_mesh(
     mesh: &Mesh,
     rasterizer: & mut Rasterizer,
     world_to_camera_space: &Matrix4<f32>,
@@ -127,18 +128,63 @@ fn render_mesh<>(
         let clip0 = camera0.transformed(*camera_to_clip_space);
         let clip1 = camera1.transformed(*camera_to_clip_space);
         let clip2 = camera2.transformed(*camera_to_clip_space);
-        let perspective_adjusted0 = clip0.perspective_adjusted();
-        let perspective_adjusted1 = clip1.perspective_adjusted();
-        let perspective_adjusted2 = clip2.perspective_adjusted();
-        rasterizer.triangle(
-            (*w0, *w1, *w2),
-            (camera0, camera1, camera2),
-            (perspective_adjusted0, perspective_adjusted1, perspective_adjusted2),
+        let tris = clip_triangle(clip0, clip1, clip2);
+
+        for tri in tris {
+            render_triangle(
+                tri,
+                rasterizer,
+                world_to_camera_space,
+                camera_to_clip_space,
+                lights,
+                ambient,
+                texture,
+                material,
+            );
+        }
+
+        /*
+        render_triangle(
+            (clip0, clip1, clip2),
+            rasterizer,
+            world_to_camera_space,
+            camera_to_clip_space,
             lights,
             ambient,
             texture,
             material,
-        );
+        );*/
     }
 }
 
+fn render_triangle(
+    clip_triangle: (Vertex4, Vertex4, Vertex4),
+    rasterizer: & mut Rasterizer,
+    world_to_camera_space: &Matrix4<f32>,
+    camera_to_clip_space: &Matrix4<f32>,
+    lights: &Vec<Light>,
+    ambient: &FloatColor,
+    texture: Option<&Texture>,
+    material: &Material,
+) {
+    let clip_to_camera_space = camera_to_clip_space.invert().unwrap();
+    let camera_to_world_space = world_to_camera_space.invert().unwrap();
+    let camera0 = clip_triangle.0.transformed(clip_to_camera_space);
+    let camera1 = clip_triangle.1.transformed(clip_to_camera_space);
+    let camera2 = clip_triangle.2.transformed(clip_to_camera_space);
+    let world0 = camera0.transformed(camera_to_world_space);
+    let world1 = camera1.transformed(camera_to_world_space);
+    let world2 = camera2.transformed(camera_to_world_space);
+    let perspective_adjusted0 = clip_triangle.0.perspective_adjusted();
+    let perspective_adjusted1 = clip_triangle.1.perspective_adjusted();
+    let perspective_adjusted2 = clip_triangle.2.perspective_adjusted();
+    rasterizer.triangle(
+        (world0, world1, world2),
+        (camera0, camera1, camera2),
+        (perspective_adjusted0, perspective_adjusted1, perspective_adjusted2),
+        lights,
+        ambient,
+        texture,
+        material,
+    );
+}

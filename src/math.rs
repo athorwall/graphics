@@ -18,6 +18,7 @@ use collision::Ray;
 use collision::Line;
 use collision::Continuous;
 use collision::Plane;
+use geometry::Vertex4;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct RectBounds<T> {
@@ -243,7 +244,8 @@ pub fn clip<T>(points: &Vec<Vector4<T>>, plane: &Fn(Vector4<T>) -> T) -> Vec<Vec
     new_points
 }
 
-// lots of optimizations to be made here
+// Remember that if we ever add vertex attributes of any kind they'll need to be interpolated
+// while clipping
 pub fn clip_in_box<T>(points: &Vec<Vector4<T>>) -> Vec<Vector4<T>> where T: BaseFloat {
     let mut clipped_points = clip(points, &|p: Vector4<T>| p.x);
     clipped_points = clip(&clipped_points, &|p: Vector4<T>| -p.x);
@@ -254,8 +256,16 @@ pub fn clip_in_box<T>(points: &Vec<Vector4<T>>) -> Vec<Vector4<T>> where T: Base
     clipped_points
 }
 
-pub fn convex_triangulation<T>(points: &Vec<Vector4<T>>) -> Vec<(Vector4<T>, Vector4<T>, Vector4<T>)>
-    where T: BaseFloat {
+pub fn clip_triangle(v0: Vertex4, v1: Vertex4, v2: Vertex4) -> Vec<(Vertex4, Vertex4, Vertex4)> {
+    let points = clip_in_box(&vec![v0.position, v1.position, v2.position]);
+    let vertices = points.iter()
+        .map(|v| Vertex4{position: *v, uv: v0.uv, normal: v0.normal})
+        .collect();
+    let triangles = convex_triangulation(&vertices);
+    triangles
+}
+
+pub fn convex_triangulation<T>(points: &Vec<T>) -> Vec<(T, T, T)> where T: Copy {
     if points.len() < 3 {
         return vec![];
     }
