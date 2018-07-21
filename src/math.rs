@@ -7,6 +7,7 @@ use cgmath::{
     Point2,
     Vector2,
     Vector3,
+    Vector4,
     Point3,
 };
 use std;
@@ -194,11 +195,16 @@ pub fn mix_colors(colors: &Vec<Color>, weights: &Vec<f32>) -> Color {
     return Color{a: 255, r, g, b};
 }
 
-/*
-pub fn barycentric_coordinates<T: Float + Copy>(point: Point2<T>, triangle: Triangle<T>) -> (T, T, T) {
-
+pub fn homogenous_intersection<T>(p0: Vector4<T>, p1: Vector4<T>, plane: &Fn(Vector4<T>) -> T) -> Option<Vector4<T>> where T: BaseFloat {
+    let b0 = p0.w + plane(p0);
+    let b1 = p1.w + plane(p1);
+    let t = b0 / (b0 - b1);
+    if t < T::zero() || t > T::one() {
+        None
+    } else {
+        Some(p0 * (T::one() - t) + p1 * t)
+    }
 }
-*/
 
 // vertices are kept if they're on the side of the plane indicated by the normal vector
 pub fn clip<T>(points: &Vec<Point3<T>>, plane: &Plane<T>) -> Vec<Point3<T>> where T: BaseFloat {
@@ -482,6 +488,18 @@ mod tests {
             Vector3{x: 1.0, y: 0.0, z: 0.0},
         );
         println!("Intersection: {:?}", plane.intersection(&ray));
+    }
+
+    #[test]
+    fn test_homogenous_intersection() {
+        assert_eq!(
+            homogenous_intersection(
+                Vector4{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+                Vector4{x: 2.0, y: 0.0, z: 0.0, w: 1.0},
+                &|p: Vector4<f32>| -p.x,
+            ),
+            Some(Vector4{x: 1.0, y: 0.0, z: 0.0, w: 1.0}),
+        );
     }
 }
 

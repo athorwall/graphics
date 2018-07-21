@@ -23,9 +23,9 @@ fn main() {
     let ctx = sdl2::init().unwrap();
     let mut events = ctx.event_pump().unwrap();
     let mut timers = Timers::new();
-    let mut canvas = create_sdl_canvas(&ctx, 400, 300);
+    let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
 
-    let mut rasterizer = Rasterizer::create(400, 300);
+    let mut rasterizer = Rasterizer::create(1000, 800);
     let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
     let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
     //let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
@@ -46,9 +46,8 @@ fn main() {
     };
     let lights = vec![
         Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0}),
-        Light::point_light(Vector3{x: -1.0, y: 1.0, z: 1.0}),
     ];
-    let ambient = FloatColor::from_rgb(0.1, 0.1, 0.1);
+    let ambient = FloatColor::from_rgb(0.3, 0.3, 0.3);
 
     let mut camera_pos = Vector3{x: 0.0, y: 1.0, z: 2.0};
 
@@ -58,7 +57,6 @@ fn main() {
         timers.start("render");
         let camera = Matrix4::from_translation(camera_pos);
         let perspective = Matrix4::from(perspective(Deg(90.0), 1000.0 / 800.0, 0.1, 100.0));
-        let transformation = perspective * camera.invert().unwrap();
         render_mesh(
             &mesh,
             &mut rasterizer,
@@ -66,7 +64,7 @@ fn main() {
             &perspective,
             &lights,
             &ambient,
-            Some(&texture),
+            None,
             &material,
         );
         render_mesh(

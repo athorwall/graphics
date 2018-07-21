@@ -147,7 +147,7 @@ impl Rasterizer {
     ) -> FloatColor {
         let texture_color = match texture {
             Some(ref t) => {
-                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::Bilinear))
+                FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::NearestNeighbor))
             },
             None => FloatColor::from_rgb(1.0, 1.0, 1.0),
         };
