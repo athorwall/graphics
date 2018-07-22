@@ -15,6 +15,7 @@ use sdl2::{
     render::Canvas,
     video::Window,
 };
+use camera::*;
 
 pub struct Renderer {
     // TODO: no pub, also should Renderer be responsible for this stuff?
@@ -23,8 +24,7 @@ pub struct Renderer {
 
     // TODO: replace with some kind of vertex-shader equivalent
     pub model_view: Matrix4<f32>,
-    // TODO: treat eye as camera-to-world, not other way around
-    pub eye: Matrix4<f32>,
+    pub world_to_view_matrix: Matrix4<f32>,
     pub projection: Matrix4<f32>,
 
     pub lighting: Lighting,
@@ -40,7 +40,7 @@ impl Renderer {
             rasterizer,
             canvas,
             model_view: Matrix4::identity(),
-            eye: Matrix4::identity(),
+            world_to_view_matrix: Matrix4::identity(),
             projection: Matrix4::from(perspective(Deg(70.0), 1000.0 / 800.0, 0.1, 100.0)),
             lighting: Lighting{
                 lights: vec![
@@ -57,8 +57,9 @@ impl Renderer {
         }
     }
 
-    pub fn set_eye(&mut self, eye: Matrix4<f32>) {
-        self.eye = eye;
+    pub fn set_from_camera(&mut self, camera: &Camera) {
+        self.world_to_view_matrix = camera.eye().invert().unwrap();
+        self.projection = camera.projection();
     }
 
     // todo: perform lighting calculations in camera space
@@ -73,7 +74,7 @@ impl Renderer {
         // First we need to transform our vertices to clip space, for clipping. Then,
         // we'll need to transform the resulting vertices back to camera and world space,
         // because our rasterizer needs all three to work (maybe it shouldn't?).
-        let world_to_clip_space = self.projection * self.eye;
+        let world_to_clip_space = self.projection * self.world_to_view_matrix;
         let clip0 = v0.to_vertex4(1.0).transformed(world_to_clip_space);
         let clip1 = v1.to_vertex4(1.0).transformed(world_to_clip_space);
         let clip2 = v2.to_vertex4(1.0).transformed(world_to_clip_space);
@@ -90,7 +91,7 @@ impl Renderer {
 
     fn render_clip_triangle(&mut self, v0: Vertex4, v1: Vertex4, v2: Vertex4) {
         let clip_to_camera_space = self.projection.invert().unwrap();
-        let camera_to_world_space = self.eye.invert().unwrap();
+        let camera_to_world_space = self.world_to_view_matrix.invert().unwrap();
         let camera0 = v0.transformed(clip_to_camera_space);
         let camera1 = v1.transformed(clip_to_camera_space);
         let camera2 = v2.transformed(clip_to_camera_space);

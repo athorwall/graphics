@@ -1,6 +1,7 @@
 use cgmath::*;
 use sdl2::keyboard::*;
 
+#[derive(Copy, Clone, Debug)]
 pub struct Camera {
     fov: f32,
     aspect: f32,
@@ -13,6 +14,10 @@ impl Camera {
 
     pub fn create(fov: f32, aspect: f32, near: f32, far: f32, eye: Matrix4<f32>) -> Self {
         Camera{fov, aspect, near, far, eye}
+    }
+
+    pub fn set_eye(&mut self, eye: Matrix4<f32>) {
+        self.eye = eye;
     }
 
     pub fn eye(&self) -> Matrix4<f32> {
@@ -31,7 +36,7 @@ impl Camera {
         &mut self,
         move_speed: f32,
         turn_speed: f32,
-        keyboard: KeyboardState
+        keyboard: &KeyboardState
     ) {
         if keyboard.is_scancode_pressed(Scancode::Up) {
             self.move_forward(move_speed);
