@@ -57,6 +57,10 @@ impl Renderer {
         }
     }
 
+    pub fn set_eye(&mut self, eye: Matrix4<f32>) {
+        self.eye = eye;
+    }
+
     // todo: perform lighting calculations in camera space
     pub fn mesh(&mut self, mesh: &Mesh) {
         for tri in &mesh.vertices {

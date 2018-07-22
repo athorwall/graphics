@@ -71,6 +71,8 @@ fn main() {
             }
         }
 
+        renderer.set_eye(camera.invert().unwrap());
+
         for event in events.poll_iter() {
             match event {
                 Event::Quit{..} => break 'main,
