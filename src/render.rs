@@ -8,15 +8,14 @@ use materials::*;
 use textures::*;
 use std::collections::HashMap;
 use sdl_utils::*;
-use sdl2;
-use sdl2::*;
 use sdl2::{
-    pixels::Color,
     render::Canvas,
     video::Window,
 };
 use camera::*;
 
+// Right now, Renderer takes ownership of rasterizer, canvas, and textures.
+// Not sure if that should be the case.
 pub struct Renderer {
     // TODO: no pub, also should Renderer be responsible for this stuff?
     pub rasterizer: Rasterizer,
@@ -29,7 +28,7 @@ pub struct Renderer {
 
     pub lighting: Lighting,
     // TODO: HashMap<usize, Texture>
-    pub texture: Option<Texture>,
+    pub textures: HashMap<usize, Texture>,
     pub material: Material,
 }
 
@@ -48,11 +47,12 @@ impl Renderer {
                 ],
                 ambient: FloatColor::from_rgb(0.3, 0.3, 0.3),
             },
-            texture: None,
+            textures: HashMap::new(),
             material: Material{
                 diffuse: FloatColor::from_rgb(1.0, 1.0, 1.0),
                 specular: FloatColor::from_rgb(1.0, 1.0, 1.0),
                 ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
+                texture: None,
             },
         }
     }
@@ -60,6 +60,10 @@ impl Renderer {
     pub fn set_from_camera(&mut self, camera: &Camera) {
         self.world_to_view_matrix = camera.eye().invert().unwrap();
         self.projection = camera.projection();
+    }
+
+    pub fn set_texture(&mut self, index: usize, texture: Texture) {
+        self.textures.insert(index, texture);
     }
 
     // todo: perform lighting calculations in camera space
@@ -104,7 +108,7 @@ impl Renderer {
 
         let lights = &self.lighting.lights;
         let ambient = &self.lighting.ambient;
-        let texture = &self.texture;
+        let textures = &self.textures;
         let material = &self.material;
 
         self.rasterizer.triangle(
@@ -118,7 +122,7 @@ impl Renderer {
                     uvs,
                     lights,
                     ambient,
-                    texture,
+                    textures,
                     material,
                 )
             },
@@ -140,9 +144,11 @@ fn process_fragment(
     uvs: &Vector2<f32>,
     lights: &Vec<Light>,
     ambient: &FloatColor,
-    texture: &Option<Texture>,
+    textures: &HashMap<usize, Texture>,
     material: &Material,
 ) -> FloatColor {
+    let texture = material.texture
+        .and_then(|index| textures.get(&index));
     let texture_color = match texture {
         Some(ref t) => {
             FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::Bilinear))

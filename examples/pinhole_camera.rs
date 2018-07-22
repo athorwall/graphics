@@ -39,6 +39,7 @@ fn main() {
         }
     }
     let texture = Texture::create(texture_frame);
+    renderer.set_texture(0, texture);
     let mut camera = Camera::create(
         70.0,
         10.0 / 8.0,
