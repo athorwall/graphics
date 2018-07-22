@@ -6,77 +6,127 @@ use light::*;
 use colors::*;
 use materials::*;
 use textures::*;
+use std::collections::HashMap;
+use sdl_utils::*;
+use sdl2;
+use sdl2::*;
+use sdl2::{
+    pixels::Color,
+    render::Canvas,
+    video::Window,
+};
 
-pub struct RenderFragmentContext {
+pub struct Renderer {
+    // TODO: no pub, also should Renderer be responsible for this stuff?
+    pub rasterizer: Rasterizer,
+    pub canvas: Canvas<Window>,
+
+    // TODO: replace with some kind of vertex-shader equivalent
+    pub model_view: Matrix4<f32>,
+    // TODO: treat eye as camera-to-world, not other way around
+    pub eye: Matrix4<f32>,
+    pub projection: Matrix4<f32>,
+
+    pub lighting: Lighting,
+    // TODO: HashMap<usize, Texture>
+    pub texture: Option<Texture>,
+    pub material: Material,
 }
 
-// todo: perform lighting calculations in camera space
-pub fn render_mesh(
-    mesh: &Mesh,
-    rasterizer: & mut Rasterizer,
-    world_to_camera_space: &Matrix4<f32>,
-    camera_to_clip_space: &Matrix4<f32>,
-    lights: &Vec<Light>,
-    ambient: &FloatColor,
-    texture: Option<&Texture>,
-    material: &Material,
-) {
-    let world_to_clip_space = *camera_to_clip_space * *world_to_camera_space;
-    for (w0, w1, w2) in &mesh.vertices {
-        let clip0 = w0.to_vertex4(1.0).transformed(world_to_clip_space);
-        let clip1 = w1.to_vertex4(1.0).transformed(world_to_clip_space);
-        let clip2 = w2.to_vertex4(1.0).transformed(world_to_clip_space);
+impl Renderer {
+
+    pub fn new(rasterizer: Rasterizer, canvas: Canvas<Window>) -> Self {
+        Renderer{
+            rasterizer,
+            canvas,
+            model_view: Matrix4::identity(),
+            eye: Matrix4::identity(),
+            projection: Matrix4::from(perspective(Deg(70.0), 1000.0 / 800.0, 0.1, 100.0)),
+            lighting: Lighting{
+                lights: vec![
+                    Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0}),
+                ],
+                ambient: FloatColor::from_rgb(0.3, 0.3, 0.3),
+            },
+            texture: None,
+            material: Material{
+                diffuse: FloatColor::from_rgb(1.0, 1.0, 1.0),
+                specular: FloatColor::from_rgb(1.0, 1.0, 1.0),
+                ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
+            },
+        }
+    }
+
+    // todo: perform lighting calculations in camera space
+    pub fn mesh(&mut self, mesh: &Mesh) {
+        for tri in &mesh.vertices {
+            self.triangle(tri.0, tri.1, tri.2);
+        }
+    }
+
+    // Improvements: shouldn't have to compute inverses every time
+    pub fn triangle(&mut self, v0: Vertex3, v1: Vertex3, v2: Vertex3) {
+        // First we need to transform our vertices to clip space, for clipping. Then,
+        // we'll need to transform the resulting vertices back to camera and world space,
+        // because our rasterizer needs all three to work (maybe it shouldn't?).
+        let world_to_clip_space = self.projection * self.eye;
+        let clip0 = v0.to_vertex4(1.0).transformed(world_to_clip_space);
+        let clip1 = v1.to_vertex4(1.0).transformed(world_to_clip_space);
+        let clip2 = v2.to_vertex4(1.0).transformed(world_to_clip_space);
         let tris = clip_triangle(
             clip0,
             clip1,
             clip2,
-            camera_to_clip_space.invert().unwrap(),
+            self.projection.invert().unwrap(),
         );
         for tri in tris {
-            render_triangle(
-                tri,
-                rasterizer,
-                world_to_camera_space,
-                camera_to_clip_space,
-                lights,
-                ambient,
-                texture,
-                material,
-            );
+            self.render_clip_triangle(tri.0, tri.1, tri.2);
         }
+    }
+
+    fn render_clip_triangle(&mut self, v0: Vertex4, v1: Vertex4, v2: Vertex4) {
+        let clip_to_camera_space = self.projection.invert().unwrap();
+        let camera_to_world_space = self.eye.invert().unwrap();
+        let camera0 = v0.transformed(clip_to_camera_space);
+        let camera1 = v1.transformed(clip_to_camera_space);
+        let camera2 = v2.transformed(clip_to_camera_space);
+        let world0 = camera0.transformed(camera_to_world_space);
+        let world1 = camera1.transformed(camera_to_world_space);
+        let world2 = camera2.transformed(camera_to_world_space);
+        let perspective_adjusted0 = v0.perspective_adjusted();
+        let perspective_adjusted1 = v1.perspective_adjusted();
+        let perspective_adjusted2 = v2.perspective_adjusted();
+
+        let lights = &self.lighting.lights;
+        let ambient = &self.lighting.ambient;
+        let texture = &self.texture;
+        let material = &self.material;
+
+        self.rasterizer.triangle(
+            (world0, world1, world2),
+            (camera0, camera1, camera2),
+            (perspective_adjusted0, perspective_adjusted1, perspective_adjusted2),
+            &|coords, normals, uvs| {
+                process_fragment(
+                    coords,
+                    normals,
+                    uvs,
+                    lights,
+                    ambient,
+                    texture,
+                    material,
+                )
+            },
+        );
+    }
+
+    pub fn present(&mut self) {
+        render_to_canvas(&mut self.canvas, self.rasterizer.get_color_buffer());
+        self.rasterizer.clear();
     }
 }
 
-// Improvements: shouldn't have to compute inverses every time
-fn render_triangle(
-    clip_triangle: (Vertex4, Vertex4, Vertex4),
-    rasterizer: & mut Rasterizer,
-    world_to_camera_space: &Matrix4<f32>,
-    camera_to_clip_space: &Matrix4<f32>,
-    lights: &Vec<Light>,
-    ambient: &FloatColor,
-    texture: Option<&Texture>,
-    material: &Material,
-) {
-    let clip_to_camera_space = camera_to_clip_space.invert().unwrap();
-    let camera_to_world_space = world_to_camera_space.invert().unwrap();
-    let camera0 = clip_triangle.0.transformed(clip_to_camera_space);
-    let camera1 = clip_triangle.1.transformed(clip_to_camera_space);
-    let camera2 = clip_triangle.2.transformed(clip_to_camera_space);
-    let world0 = camera0.transformed(camera_to_world_space);
-    let world1 = camera1.transformed(camera_to_world_space);
-    let world2 = camera2.transformed(camera_to_world_space);
-    let perspective_adjusted0 = clip_triangle.0.perspective_adjusted();
-    let perspective_adjusted1 = clip_triangle.1.perspective_adjusted();
-    let perspective_adjusted2 = clip_triangle.2.perspective_adjusted();
-    rasterizer.triangle(
-        (world0, world1, world2),
-        (camera0, camera1, camera2),
-        (perspective_adjusted0, perspective_adjusted1, perspective_adjusted2),
-        &|coords, normals, uvs| {
-            process_fragment(coords, normals, uvs, lights, ambient, &texture, material)
-        },
-    );
+pub struct RenderFragmentContext {
 }
 
 fn process_fragment(
@@ -85,12 +135,12 @@ fn process_fragment(
     uvs: &Vector2<f32>,
     lights: &Vec<Light>,
     ambient: &FloatColor,
-    texture: &Option<&Texture>,
+    texture: &Option<Texture>,
     material: &Material,
 ) -> FloatColor {
     let texture_color = match texture {
         Some(ref t) => {
-            FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::NearestNeighbor))
+            FloatColor::from_sdl_color(&t.sample(uvs.x, uvs.y, TextureFilterMode::Bilinear))
         },
         None => FloatColor::from_rgb(1.0, 1.0, 1.0),
     };

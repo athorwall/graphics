@@ -1,6 +1,11 @@
 use cgmath::*;
 use colors::*;
 
+pub struct Lighting {
+    pub lights: Vec<Light>,
+    pub ambient: FloatColor,
+}
+
 pub struct Light {
     // TODO: make private
     pub light_type: LightType,

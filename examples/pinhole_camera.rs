@@ -26,12 +26,7 @@ fn main() {
     let mut events = ctx.event_pump().unwrap();
     let mut timers = Timers::new();
     let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
-
     let mut rasterizer = Rasterizer::create(1000, 800);
-    let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
-    let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
-    //let camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
-
     let mut texture_frame = Frame::new(128, 128, Color::RGB(255, 255, 255));
     for x in 0..128 {
         for y in 0..128 {
@@ -41,68 +36,38 @@ fn main() {
         }
     }
     let texture = Texture::create(texture_frame);
-    let material = Material{
-        diffuse: FloatColor::from_rgb(1.0, 1.0, 1.0),
-        specular: FloatColor::from_rgb(1.0, 1.0, 1.0),
-        ambient: FloatColor::from_rgb(1.0, 1.0, 1.0),
-    };
-    let lights = vec![
-        Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0}),
-    ];
-    let ambient = FloatColor::from_rgb(0.3, 0.3, 0.3);
+    let mut camera = Matrix4::from_translation(Vector3{x: 0.0, y: 0.6, z: 2.0});
+    let mut renderer = Renderer::new(rasterizer, canvas);
+    renderer.eye = camera.invert().unwrap();
 
-    let mut camera = Matrix4::from_translation(Vector3{x: 0.0, y: 1.0, z: 2.0});
+    let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
+    let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
 
     'main: loop {
-        rasterizer.clear();
 
         timers.start("render");
-        let perspective = Matrix4::from(perspective(Deg(70.0), 1000.0 / 800.0, 0.1, 100.0));
-        render_mesh(
-            &mesh,
-            &mut rasterizer,
-            &camera.invert().unwrap(),
-            &perspective,
-            &lights,
-            &ambient,
-            Some(&texture),
-            &material,
-            &process_fragment,
-        );
-        render_mesh(
-            &mesh2,
-            &mut rasterizer,
-            &camera.invert().unwrap(),
-            &perspective,
-            &lights,
-            &ambient,
-            None,
-            &material,
-            &process_fragment,
-        );
+        renderer.mesh(&mesh);
+        renderer.mesh(&mesh2);
         timers.stop("render");
 
-        mesh.transform(Matrix4::from_angle_y(Deg(0.3)));
-        mesh2.transform(Matrix4::from_angle_y(Deg(0.3)));
+        renderer.present();
 
-        timers.start("canvas");
-        render_to_canvas(&mut canvas, rasterizer.get_color_buffer());
-        timers.stop("canvas");
+        mesh2.transform(Matrix4::from_angle_y(Deg(0.3)));
 
         {
             events.pump_events();
             let keyboard_state = events.keyboard_state();
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Up) {
-                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: -0.02});
+                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: -0.04});
             }
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Down) {
-                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: 0.02});
+                camera = camera * Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: 0.04});
             }
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Left) {
-                camera = camera * Matrix4::from_angle_y(cgmath::Rad(0.01));
+                camera = camera * Matrix4::from_angle_y(cgmath::Rad(0.03));
             }
             if keyboard_state.is_scancode_pressed(sdl2::keyboard::Scancode::Right) {
-                camera = camera * Matrix4::from_angle_y(cgmath::Rad(-0.01));
+                camera = camera * Matrix4::from_angle_y(cgmath::Rad(-0.03));
             }
         }
 
