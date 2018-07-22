@@ -12,5 +12,6 @@ pub mod light;
 pub mod materials;
 pub mod math;
 pub mod rasterizer;
+pub mod render;
 pub mod sdl_utils;
 pub mod textures;
