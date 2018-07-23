@@ -217,7 +217,7 @@ impl Mesh {
                 ));
             }
         }
-        let computed_vertices = vertices.iter()
+        let computed_vertices: Vec<(Vertex3, Vertex3, Vertex3)> = vertices.iter()
             .map(|(v0, v1, v2)| (
                 Vertex3{
                     position: *v0,
@@ -236,16 +236,18 @@ impl Mesh {
                 },
             ))
             .collect();
-        let mut mesh = Mesh{vertices: computed_vertices};
-        for i in 1..segments {
-            let mut next_mesh = mesh.clone();
-            next_mesh.transform(Matrix4::from_angle_y(segment_angle * i as f32));
-            mesh.vertices.append(&mut next_mesh.vertices);
+        let mut mesh_vertices = vec![];
+        let mut slice_mesh = Mesh{vertices: computed_vertices.clone()};
+        for i in 0..segments {
+            let mut slice_mesh = Mesh{vertices: computed_vertices.clone()};
+            slice_mesh.transform(Matrix4::from_angle_y(segment_angle * i as f32));
+            mesh_vertices.append(&mut slice_mesh.vertices);
         }
-        let mut next_mesh = mesh.clone();
-        next_mesh.transform(Matrix4::from_angle_x(Rad(PI)));
-        mesh.vertices.append(&mut next_mesh.vertices);
-        mesh.compute_normals();
+        let mut dome_mesh = Mesh{vertices: mesh_vertices.clone()};
+        dome_mesh.transform(Matrix4::from_angle_x(Rad(PI)));
+        mesh_vertices.append(&mut dome_mesh.vertices);
+        let mut mesh = Mesh{vertices: mesh_vertices};
+        //////////////////mesh.compute_normals();
         mesh
     }
 

@@ -45,7 +45,7 @@ impl Renderer {
                 lights: vec![
                     Light::point_light(Vector3{x: 1.0, y: 1.0, z: 1.0}),
                 ],
-                ambient: FloatColor::from_rgb(0.3, 0.3, 0.3),
+                ambient: FloatColor::from_rgb(0.1, 0.1, 0.1),
             },
             textures: HashMap::new(),
             material: Material{

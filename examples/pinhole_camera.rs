@@ -51,8 +51,9 @@ fn main() {
 
     let mesh = Mesh::xy_face(2.5)
         .transformed(Matrix4::from_angle_x(Deg(-90.0)));
-    let mut mesh2 = Mesh::sphere(0.5, 4)
+    let mut mesh2 = Mesh::sphere(0.5, 8)
         .transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.5, z: 0.0}));
+    println!("{:?}", mesh2.vertices.len());
 
     'main: loop {
 
