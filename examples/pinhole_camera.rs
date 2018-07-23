@@ -15,10 +15,6 @@ use sdl2::{
 use timing::Timers;
 use graphics::frame::*;
 use graphics::textures::*;
-use graphics::light::*;
-use graphics::colors::*;
-use graphics::materials::*;
-use graphics::math::*;
 use graphics::render::*;
 use graphics::camera::*;
 
@@ -26,11 +22,15 @@ fn main() {
     let ctx = sdl2::init().unwrap();
     let mut events = ctx.event_pump().unwrap();
     let mut timers = Timers::new();
-    let mut canvas = create_sdl_canvas(&ctx, 1000, 800);
-    let mut rasterizer = Rasterizer::create(1000, 800);
+    let canvas = create_sdl_canvas(&ctx, 1000, 800);
+    let rasterizer = Rasterizer::create(1000, 800);
     let mut renderer = Renderer::new(rasterizer, canvas);
 
-    let mut texture_frame = Frame::new(128, 128, Color::RGB(255, 255, 255));
+    let mut texture_frame = Frame::new(
+        128,
+        128,
+        Color::RGB(255, 255, 255)
+    );
     for x in 0..128 {
         for y in 0..128 {
             if ((x / 8) + (y / 8)) % 2 == 0 {
@@ -49,17 +49,23 @@ fn main() {
     );
     renderer.set_from_camera(&camera);
 
-    let mut mesh = Mesh::xy_face(2.5).transformed(Matrix4::from_angle_x(Deg(-90.0)));
-    let mut mesh2 = Mesh::cube(0.5).transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.25, z: 0.0}));
+    let mesh = Mesh::xy_face(2.5)
+        .transformed(Matrix4::from_angle_x(Deg(-90.0)));
+    let mut mesh2 = Mesh::sphere(0.5, 4)
+        .transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.5, z: 0.0}));
 
     'main: loop {
 
-        timers.start("render");
+        timers.start("Rendering plane");
         renderer.mesh(&mesh);
+        timers.stop("Rendering plane");
+        timers.start("Rendering cube");
         renderer.mesh(&mesh2);
-        timers.stop("render");
+        timers.stop("Rendering cube");
 
+        timers.start("Presentation");
         renderer.present();
+        timers.stop("Presentation");
 
         mesh2.transform(Matrix4::from_angle_y(Deg(0.3)));
 

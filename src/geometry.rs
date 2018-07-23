@@ -1,5 +1,6 @@
 use cgmath::*;
 use math::*;
+use std::f32::consts::PI;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vertex3 {
@@ -190,6 +191,74 @@ impl Mesh {
         );
         cube.compute_normals();
         return cube;
+    }
+
+    pub fn sphere(size: f32, smoothness: usize) -> Self {
+        let segments = smoothness * 4;
+        let segment_angle = Rad(2.0 * PI / (segments as f32));
+        let mut vertices = vec![];
+        for i in 0..smoothness {
+            if i == 0 {
+                vertices.push((
+                    Vector3{x: 0.0, y: size, z: 0.0},
+                    Self::sphere_vertex_position(size, segment_angle, segment_angle),
+                    Self::sphere_vertex_position(size, segment_angle, Rad(0.0)),
+                ));
+            } else {
+                vertices.push((
+                    Self::sphere_vertex_position(size, segment_angle * i as f32, Rad(0.0)),
+                    Self::sphere_vertex_position(size, segment_angle * i as f32, segment_angle),
+                    Self::sphere_vertex_position(size, segment_angle * (i + 1) as f32, segment_angle),
+                ));
+                vertices.push((
+                    Self::sphere_vertex_position(size, segment_angle * (i + 1) as f32, segment_angle),
+                    Self::sphere_vertex_position(size, segment_angle * (i + 1) as f32, Rad(0.0)),
+                    Self::sphere_vertex_position(size, segment_angle * i as f32, Rad(0.0)),
+                ));
+            }
+        }
+        let computed_vertices = vertices.iter()
+            .map(|(v0, v1, v2)| (
+                Vertex3{
+                    position: *v0,
+                    uv: Vector2{x: 0.0, y: 0.0},
+                    normal: *v0 / v0.magnitude(),
+                },
+                Vertex3{
+                    position: *v1,
+                    uv: Vector2{x: 0.0, y: 0.0},
+                    normal: *v1 / v1.magnitude(),
+                },
+                Vertex3{
+                    position: *v2,
+                    uv: Vector2{x: 0.0, y: 0.0},
+                    normal: *v2 / v2.magnitude(),
+                },
+            ))
+            .collect();
+        let mut mesh = Mesh{vertices: computed_vertices};
+        for i in 1..segments {
+            let mut next_mesh = mesh.clone();
+            next_mesh.transform(Matrix4::from_angle_y(segment_angle * i as f32));
+            mesh.vertices.append(&mut next_mesh.vertices);
+        }
+        let mut next_mesh = mesh.clone();
+        next_mesh.transform(Matrix4::from_angle_x(Rad(PI)));
+        mesh.vertices.append(&mut next_mesh.vertices);
+        mesh.compute_normals();
+        mesh
+    }
+
+    fn sphere_vertex_position(
+        size: f32,
+        polar_angle: Rad<f32>,
+        azimuthal_angle: Rad<f32>,
+    ) -> Vector3<f32> {
+        Vector3{
+            x: size * polar_angle.sin() * azimuthal_angle.cos(),
+            y: size * polar_angle.cos(),
+            z: size * polar_angle.sin() * azimuthal_angle.sin(),
+        }
     }
 
     pub fn transform(&mut self, transformation: Matrix4<f32>) {
