@@ -2,7 +2,6 @@ extern crate cgmath;
 extern crate graphics;
 extern crate sdl2;
 extern crate num_traits;
-extern crate timing;
 
 use cgmath::*;
 use graphics::rasterizer::*;
@@ -12,16 +11,15 @@ use sdl2::{
     event::Event,
     pixels::Color,
 };
-use timing::Timers;
 use graphics::frame::*;
 use graphics::textures::*;
 use graphics::render::*;
 use graphics::camera::*;
+use graphics::materials::*;
 
 fn main() {
     let ctx = sdl2::init().unwrap();
     let mut events = ctx.event_pump().unwrap();
-    let mut timers = Timers::new();
     let canvas = create_sdl_canvas(&ctx, 1000, 800);
     let rasterizer = Rasterizer::create(1000, 800);
     let mut renderer = Renderer::new(rasterizer, canvas);
@@ -49,24 +47,22 @@ fn main() {
     );
     renderer.set_from_camera(&camera);
 
+    let mut checkered_material = Material::new();
+    checkered_material.texture = Some(0);
+    let mut default_material = Material::new();
     let mesh = Mesh::xy_face(2.5)
         .transformed(Matrix4::from_angle_x(Deg(-90.0)));
-    let mut mesh2 = Mesh::sphere(0.5, 8)
+    let mut mesh2 = Mesh::sphere(0.5, 5)
         .transformed(Matrix4::from_translation(Vector3{x: 0.0, y: 0.5, z: 0.0}));
-    println!("{:?}", mesh2.vertices.len());
 
     'main: loop {
 
-        timers.start("Rendering plane");
+        renderer.set_material(checkered_material);
         renderer.mesh(&mesh);
-        timers.stop("Rendering plane");
-        timers.start("Rendering cube");
+        renderer.set_material(default_material);
         renderer.mesh(&mesh2);
-        timers.stop("Rendering cube");
 
-        timers.start("Presentation");
         renderer.present();
-        timers.stop("Presentation");
 
         mesh2.transform(Matrix4::from_angle_y(Deg(0.3)));
 
@@ -86,8 +82,6 @@ fn main() {
         }
 
     }
-
-    println!("{}", timers);
 }
 
 

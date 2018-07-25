@@ -11,6 +11,3 @@ collision = "0.18.0"
 [dependencies.sdl2]
 version = "0.31.0"
 features = ["bundled", "static-link", "unsafe_textures"]
-
-[dependencies.timing]
-path = "../timing"

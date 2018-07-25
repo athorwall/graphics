@@ -66,6 +66,10 @@ impl Renderer {
         self.textures.insert(index, texture);
     }
 
+    pub fn set_material(&mut self, material: Material) {
+        self.material = material
+    }
+
     // todo: perform lighting calculations in camera space
     pub fn mesh(&mut self, mesh: &Mesh) {
         for tri in &mesh.vertices {
